@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "248210458603",
+    "project_id": "movie-magic-box-9f2b7",
+    "storage_bucket": "movie-magic-box-9f2b7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:248210458603:android:74435e8ced7bfe22a77bae",
+        "android_client_info": {
+          "package_name": "com.appadsrocket.moviemagicbox"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAx3Frr1CbP1SX9h2HJOztiMYadP9eHd0k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

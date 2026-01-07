@@ -1,0 +1,16 @@
+/.DS_Store
+/.dart_tool
+/.flutter-plugins
+/.flutter-plugins-dependencies
+/.idea
+/.metadata
+/APP_REJECTION_ANALYSIS.md
+/APP_STORE_SUBMISSION.md
+/DESIGN_DOCUMENTATION.md
+/INTEGRATION_DOCUMENTATION.md
+/MAIN_DART_DATA_FLOW.md
+/QUICK_APPROVAL_PLAN.md
+/README.md
+/TECHNICAL_DOCUMENTATION.md
+/UNIQUE_FEATURES_SUGGESTIONS.md
+/build

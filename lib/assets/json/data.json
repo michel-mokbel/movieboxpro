@@ -1,0 +1,413 @@
+{
+  "result": [
+    {
+      "type": "movie",
+      "title": "Spider-Man: No Way Home",
+      "overview": "When Dr. Strange's spell to restore Spider-Man's identity goes awry, Peter is forced to overcome his greatest challenge yet.",
+      "streamingInfo": {
+        "ae": [
+          {
+            "service": "apple",
+            "streamingType": "rent",
+            "quality": "hd",
+            "link": "https://tv.apple.com/ae/movie/spider-man-no-way-home/umc.cmc.2qf7xc5hds0m5jgx4roago580?playableId=tvs.sbd.9001%3A1598961641",
+            "audios": [],
+            "subtitles": [],
+            "price": {
+              "amount": "19.99",
+              "currency": "AED",
+              "formatted": "19.99 AED"
+            },
+            "availableSince": 1721881435
+          },
+          {
+            "service": "apple",
+            "streamingType": "buy",
+            "quality": "sd",
+            "link": "https://tv.apple.com/ae/movie/spider-man-no-way-home/umc.cmc.2qf7xc5hds0m5jgx4roago580?playableId=tvs.sbd.9001%3A1648448746",
+            "audios": [],
+            "subtitles": [],
+            "price": {
+              "amount": "24.99",
+              "currency": "AED",
+              "formatted": "24.99 AED"
+            },
+            "availableSince": 1721881435
+          },
+          {
+            "service": "netflix",
+            "streamingType": "subscription",
+            "quality": "uhd",
+            "link": "https://www.netflix.com/title/81652327/",
+            "videoLink": "https://www.netflix.com/watch/81652327",
+            "audios": [
+              { "language": "eng", "region": "" },
+              { "language": "hin", "region": "" }
+            ],
+            "subtitles": [
+              {
+                "locale": { "language": "ara", "region": "" },
+                "closedCaptions": false
+              },
+              {
+                "locale": { "language": "eng", "region": "" },
+                "closedCaptions": false
+              },
+              {
+                "locale": { "language": "hin", "region": "" },
+                "closedCaptions": false
+              }
+            ],
+            "availableSince": 1721636299
+          },
+          {
+            "service": "netflix",
+            "streamingType": "subscription",
+            "quality": "uhd",
+            "link": "https://www.netflix.com/title/81465707/",
+            "videoLink": "https://www.netflix.com/watch/81465707",
+            "audios": [
+              { "language": "eng", "region": "" },
+              { "language": "hin", "region": "" }
+            ],
+            "subtitles": [
+              {
+                "locale": { "language": "ara", "region": "" },
+                "closedCaptions": false
+              },
+              {
+                "locale": { "language": "eng", "region": "" },
+                "closedCaptions": false
+              },
+              {
+                "locale": { "language": "hin", "region": "" },
+                "closedCaptions": false
+              }
+            ],
+            "availableSince": 1721636315
+          },
+          {
+            "service": "apple",
+            "streamingType": "buy",
+            "quality": "hd",
+            "link": "https://tv.apple.com/ae/movie/spider-man-no-way-home/umc.cmc.2qf7xc5hds0m5jgx4roago580?playableId=tvs.sbd.9001%3A1648448746",
+            "audios": [],
+            "subtitles": [],
+            "price": {
+              "amount": "49.99",
+              "currency": "AED",
+              "formatted": "49.99 AED"
+            },
+            "availableSince": 1721881435
+          }
+        ]
+      },
+      "cast": [
+        "Tom Holland",
+        "Zendaya",
+        "Benedict Cumberbatch",
+        "Jacob Batalon",
+        "Jon Favreau",
+        "Jamie Foxx",
+        "Willem Dafoe"
+      ],
+      "year": 2021,
+      "imdbId": "tt10872600",
+      "tmdbId": 634649,
+      "originalTitle": "Spider-Man: No Way Home",
+      "genres": [
+        { "id": 28, "name": "Action" },
+        { "id": 12, "name": "Adventure" },
+        { "id": 14, "name": "Fantasy" }
+      ],
+      "directors": ["Jon Watts"]
+    },
+    {
+      "type": "movie",
+      "title": "Spider-Man: Homecoming",
+      "overview": "Spider-Man [Tom Holland] begins to navigate his new identity as the web-slinging super hero under the watchful eye of his mentor Tony Stark.",
+      "streamingInfo": {
+        "ae": [
+          {
+            "service": "apple",
+            "streamingType": "buy",
+            "quality": "sd",
+            "link": "https://tv.apple.com/ae/movie/spider-man-homecoming/umc.cmc.2sbgqu6gpbevxnjjhfd4ahuvn?playableId=tvs.sbd.9001%3A1243195844",
+            "audios": [],
+            "subtitles": [],
+            "price": {
+              "amount": "24.99",
+              "currency": "AED",
+              "formatted": "24.99 AED"
+            },
+            "availableSince": 1707475065
+          },
+          {
+            "service": "apple",
+            "streamingType": "buy",
+            "quality": "hd",
+            "link": "https://tv.apple.com/ae/movie/spider-man-homecoming/umc.cmc.2sbgqu6gpbevxnjjhfd4ahuvn?playableId=tvs.sbd.9001%3A1243195844",
+            "audios": [],
+            "subtitles": [],
+            "price": {
+              "amount": "59.99",
+              "currency": "AED",
+              "formatted": "59.99 AED"
+            },
+            "availableSince": 1707475065
+          },
+          {
+            "service": "apple",
+            "streamingType": "rent",
+            "quality": "hd",
+            "link": "https://tv.apple.com/ae/movie/spider-man-homecoming/umc.cmc.2sbgqu6gpbevxnjjhfd4ahuvn?playableId=tvs.sbd.9001%3A1243195844",
+            "audios": [],
+            "subtitles": [],
+            "price": {
+              "amount": "19.99",
+              "currency": "AED",
+              "formatted": "19.99 AED"
+            },
+            "availableSince": 1707475065
+          },
+          {
+            "service": "netflix",
+            "streamingType": "subscription",
+            "quality": "hd",
+            "link": "https://www.netflix.com/title/80166369/",
+            "videoLink": "https://www.netflix.com/watch/80166369",
+            "audios": [
+              { "language": "eng", "region": "" },
+              { "language": "hin", "region": "" },
+              { "language": "mal", "region": "" }
+            ],
+            "subtitles": [
+              {
+                "locale": { "language": "ara", "region": "" },
+                "closedCaptions": false
+              },
+              {
+                "locale": { "language": "eng", "region": "" },
+                "closedCaptions": false
+              },
+              {
+                "locale": { "language": "hin", "region": "" },
+                "closedCaptions": false
+              }
+            ],
+            "availableSince": 1709971452
+          },
+          {
+            "service": "apple",
+            "streamingType": "addon",
+            "quality": "hd",
+            "addon": "tvs.sbd.1000358",
+            "link": "https://tv.apple.com/ae/movie/spider-man-homecoming/umc.cmc.2sbgqu6gpbevxnjjhfd4ahuvn?playableId=tvs.sbd.1000358%3ASPIDERMANHOMECOMINGY2017M",
+            "audios": [{ "language": "eng", "region": "USA" }],
+            "subtitles": [
+              {
+                "locale": { "language": "ara", "region": "ARE" },
+                "closedCaptions": false
+              },
+              {
+                "locale": { "language": "eng", "region": "USA" },
+                "closedCaptions": false
+              }
+            ],
+            "availableSince": 1732068051
+          }
+        ]
+      },
+      "cast": [
+        "Tom Holland",
+        "Michael Keaton",
+        "Robert Downey Jr.",
+        "Marisa Tomei",
+        "Jon Favreau",
+        "Gwyneth Paltrow",
+        "Zendaya"
+      ],
+      "year": 2017,
+      "imdbId": "tt2250912",
+      "tmdbId": 315635,
+      "originalTitle": "Spider-Man: Homecoming",
+      "genres": [
+        { "id": 28, "name": "Action" },
+        { "id": 12, "name": "Adventure" },
+        { "id": 878, "name": "Science Fiction" }
+      ],
+      "directors": ["Jon Watts"]
+    },
+    {
+      "type": "movie",
+      "title": "Spider-Man 2",
+      "overview": "Peter Parker (Tobey Maguire) is going through a major identity crisis. Burned out from being Spider-Man, he decides to shelve his superhero alter ego, which leaves the city suffering in the wake of carnage left by the evil Doctor Octopus.",
+      "streamingInfo": {
+        "ae": [
+          {
+            "service": "netflix",
+            "streamingType": "subscription",
+            "quality": "uhd",
+            "link": "https://www.netflix.com/title/60036230/",
+            "videoLink": "https://www.netflix.com/watch/60036230",
+            "audios": [
+              { "language": "eng", "region": "" },
+              { "language": "hin", "region": "" }
+            ],
+            "subtitles": [
+              {
+                "locale": { "language": "ara", "region": "" },
+                "closedCaptions": false
+              },
+              {
+                "locale": { "language": "eng", "region": "" },
+                "closedCaptions": true
+              },
+              {
+                "locale": { "language": "hin", "region": "" },
+                "closedCaptions": false
+              }
+            ],
+            "availableSince": 1677785064
+          }
+        ]
+      },
+      "cast": [
+        "Tobey Maguire",
+        "Kirsten Dunst",
+        "James Franco",
+        "Alfred Molina",
+        "Rosemary Harris",
+        "J.K. Simmons",
+        "Donna Murphy"
+      ],
+      "year": 2004,
+      "imdbId": "tt0316654",
+      "tmdbId": 558,
+      "originalTitle": "Spider-Man 2",
+      "genres": [
+        { "id": 28, "name": "Action" },
+        { "id": 12, "name": "Adventure" },
+        { "id": 878, "name": "Science Fiction" }
+      ],
+      "directors": ["Sam Raimi"]
+    },
+    {
+      "type": "movie",
+      "title": "Spider-Man: Far From Home",
+      "overview": "Following the events of Avengers: Endgame, Spider-Man must step up to take on new threats in a world that has changed forever.",
+      "streamingInfo": {
+        "ae": [
+          {
+            "service": "apple",
+            "streamingType": "buy",
+            "quality": "hd",
+            "link": "https://tv.apple.com/ae/movie/spider-man-far-from-home/umc.cmc.1xnsjqmhn8a93iy2vgj36w3d1?playableId=tvs.sbd.9001%3A1472102169",
+            "audios": [],
+            "subtitles": [],
+            "price": {
+              "amount": "59.99",
+              "currency": "AED",
+              "formatted": "59.99 AED"
+            },
+            "availableSince": 1732067514
+          },
+          {
+            "service": "apple",
+            "streamingType": "buy",
+            "quality": "sd",
+            "link": "https://tv.apple.com/ae/movie/spider-man-far-from-home/umc.cmc.1xnsjqmhn8a93iy2vgj36w3d1?playableId=tvs.sbd.9001%3A1472102169",
+            "audios": [],
+            "subtitles": [],
+            "price": {
+              "amount": "24.99",
+              "currency": "AED",
+              "formatted": "24.99 AED"
+            },
+            "availableSince": 1732067514
+          },
+          {
+            "service": "apple",
+            "streamingType": "rent",
+            "quality": "hd",
+            "link": "https://tv.apple.com/ae/movie/spider-man-far-from-home/umc.cmc.1xnsjqmhn8a93iy2vgj36w3d1?playableId=tvs.sbd.9001%3A1472102169",
+            "audios": [],
+            "subtitles": [],
+            "price": {
+              "amount": "14.99",
+              "currency": "AED",
+              "formatted": "14.99 AED"
+            },
+            "availableSince": 1732067514
+          },
+          {
+            "service": "netflix",
+            "streamingType": "subscription",
+            "quality": "uhd",
+            "link": "https://www.netflix.com/title/81055822/",
+            "videoLink": "https://www.netflix.com/watch/81055822",
+            "audios": [
+              { "language": "eng", "region": "" },
+              { "language": "hin", "region": "" },
+              { "language": "mal", "region": "" }
+            ],
+            "subtitles": [
+              {
+                "locale": { "language": "ara", "region": "" },
+                "closedCaptions": false
+              },
+              {
+                "locale": { "language": "eng", "region": "" },
+                "closedCaptions": false
+              },
+              {
+                "locale": { "language": "hin", "region": "" },
+                "closedCaptions": false
+              }
+            ],
+            "availableSince": 1710104151
+          }
+        ]
+      },
+      "cast": [
+        "Tom Holland",
+        "Jake Gyllenhaal",
+        "Samuel L. Jackson",
+        "Marisa Tomei",
+        "Jon Favreau",
+        "Zendaya",
+        "Jacob Batalon"
+      ],
+      "year": 2019,
+      "imdbId": "tt6320628",
+      "tmdbId": 429617,
+      "originalTitle": "Spider-Man: Far From Home",
+      "genres": [
+        { "id": 28, "name": "Action" },
+        { "id": 12, "name": "Adventure" }
+      ],
+      "directors": ["Jon Watts"]
+    },
+    {
+      "type": "movie",
+      "title": "No Way, Spider",
+      "overview": "",
+      "streamingInfo": {},
+      "cast": [
+        "Jorge Loredo",
+        "Helena Ignez",
+        "Maria Gladys",
+        "Luiz Gonzaga",
+        "Neville D'Almeida",
+        "Guará Rodrigues",
+        "Moreira da Silva"
+      ],
+      "year": 1970,
+      "imdbId": "tt0260354",
+      "tmdbId": 186735,
+      "originalTitle": "Sem Essa, Aranha",
+      "genres": [{ "id": 35, "name": "Comedy" }],
+      "directors": ["Rogério Sganzerla"]
+    }
+  ]
+}
