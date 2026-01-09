@@ -44,7 +44,7 @@ class _SettingsState extends State<Settings> with SingleTickerProviderStateMixin
   }
 
   void shareApp(BuildContext context) {
-    const String appUrl = 'https://apps.apple.com/us/app/movie-box-pro/id6756583616';
+    const String appUrl = 'https://apps.apple.com/us/app/movie-box-pro/id6757599133';
     Share.share(appUrl);
   }
 
