@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:moviemagicbox/utils/ios_theme.dart';
+import 'package:moviemagicbox/utils/bento_theme.dart';
 
 class AiLoader extends StatefulWidget {
   final String? label;
@@ -76,7 +76,7 @@ class _AiLoaderState extends State<AiLoader> with SingleTickerProviderStateMixin
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: IOSTheme.systemBlue.withOpacity(0.4),
+                            color: BentoTheme.accent.withOpacity(0.4),
                             width: 2,
                           ),
                         ),
@@ -92,15 +92,10 @@ class _AiLoaderState extends State<AiLoader> with SingleTickerProviderStateMixin
                   height: widget.size,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        IOSTheme.systemBlue.withOpacity(0.9),
-                        IOSTheme.systemBlue.withOpacity(0.2),
-                      ],
-                    ),
+                    gradient: BentoTheme.accentGradient,
                     boxShadow: [
                       BoxShadow(
-                        color: IOSTheme.systemBlue.withOpacity(0.35),
+                        color: BentoTheme.accent.withOpacity(0.35),
                         blurRadius: 16,
                         offset: const Offset(0, 6),
                       ),
@@ -142,7 +137,7 @@ class _AiLoaderState extends State<AiLoader> with SingleTickerProviderStateMixin
           const SizedBox(height: 12),
           Text(
             widget.label!,
-            style: IOSTheme.subhead.copyWith(color: Colors.white70),
+            style: BentoTheme.caption.copyWith(color: BentoTheme.textSecondary),
           ),
         ],
       ],

@@ -1,13 +1,16 @@
+import 'dart:ui';
 import 'dart:math';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:moviemagicbox/utils/ios_theme.dart';
+import 'package:moviemagicbox/utils/bento_theme.dart';
+import 'package:moviemagicbox/widgets/bento_card.dart';
 import '../models/quiz_question.dart';
 import '../repositories/dashboard_repository.dart';
 import '../services/api_service.dart';
 import '../services/favorites_service.dart';
 import '../services/movie_service.dart';
+import '../services/quiz_history_service.dart';
 import '../widgets/ai_loader.dart';
 
 class MovieQuizScreen extends StatefulWidget {
@@ -39,6 +42,7 @@ class _MovieQuizScreenState extends State<MovieQuizScreen> {
   int _score = 0;
   String? _selectedAnswer;
   bool _showResults = false;
+  bool _resultSaved = false;
 
   @override
   void initState() {
@@ -91,6 +95,7 @@ class _MovieQuizScreenState extends State<MovieQuizScreen> {
       _score = 0;
       _selectedAnswer = null;
       _showResults = false;
+      _resultSaved = false;
     });
 
     try {
@@ -105,9 +110,7 @@ class _MovieQuizScreenState extends State<MovieQuizScreen> {
         return;
       }
 
-      final options = questions
-          .map((question) => question.allOptions(random: _random))
-          .toList();
+      final options = questions.map((question) => question.allOptions(random: _random)).toList();
 
       setState(() {
         _questions = questions;
@@ -164,6 +167,7 @@ class _MovieQuizScreenState extends State<MovieQuizScreen> {
       setState(() {
         _showResults = true;
       });
+      _saveQuizResult();
       return;
     }
 
@@ -182,50 +186,40 @@ class _MovieQuizScreenState extends State<MovieQuizScreen> {
       _selectedAnswer = null;
       _showResults = false;
       _selectedMovie = null;
+      _resultSaved = false;
     });
+  }
+
+  Future<void> _saveQuizResult() async {
+    if (_resultSaved || _questions.isEmpty) return;
+    _resultSaved = true;
+    final title = _selectedMovie?['title']?.toString() ?? 'Random Pick';
+    final poster = _selectedMovie?['poster']?.toString();
+    await QuizHistoryService.addQuizResult(
+      title: title,
+      poster: poster,
+      score: _score,
+      total: _questions.length,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: BentoTheme.background,
       body: Stack(
         children: [
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF0B0B14),
-                  Color(0xFF141414),
-                  Color(0xFF040404),
-                ],
-              ),
-            ),
-          ),
+          _buildBackground(),
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Movie',
-                    style: IOSTheme.largeTitle.copyWith(
-                      fontSize: 42,
-                      color: Colors.white.withOpacity(0.9),
-                      letterSpacing: -1,
-                    ),
-                  ),
-                  Text(
-                    'Quiz',
-                    style: IOSTheme.title1.copyWith(
-                      color: IOSTheme.systemBlue,
-                      fontWeight: FontWeight.w300,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
+                  Text('Movie Quiz', style: BentoTheme.subtitle.copyWith(letterSpacing: 1.4)),
+                  const SizedBox(height: 6),
+                  Text('Test your knowledge', style: BentoTheme.display),
+                  const SizedBox(height: 20),
                   if (_isGenerating)
                     const Center(
                       child: Padding(
@@ -244,6 +238,18 @@ class _MovieQuizScreenState extends State<MovieQuizScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBackground() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: BentoTheme.backgroundGradient,
+      ),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+        child: Container(color: Colors.transparent),
       ),
     );
   }
@@ -286,36 +292,34 @@ class _MovieQuizScreenState extends State<MovieQuizScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        CupertinoSegmentedControl<String>(
-          groupValue: _source,
-          borderColor: Colors.white.withOpacity(0.1),
-          selectedColor: IOSTheme.systemBlue.withOpacity(0.3),
-          unselectedColor: Colors.white.withOpacity(0.05),
-          onValueChanged: (value) {
-            HapticFeedback.selectionClick();
-            setState(() {
-              _source = value;
-              _error = null;
-            });
-          },
-          children: {
-            'favorites': Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                'Favorites',
-                style: IOSTheme.subhead.copyWith(color: Colors.white70),
+        BentoCard(
+          padding: const EdgeInsets.all(6),
+          borderRadius: BorderRadius.circular(BentoTheme.radiusMedium),
+          child: CupertinoSegmentedControl<String>(
+            groupValue: _source,
+            borderColor: Colors.transparent,
+            selectedColor: BentoTheme.accent.withOpacity(0.25),
+            unselectedColor: Colors.transparent,
+            onValueChanged: (value) {
+              HapticFeedback.selectionClick();
+              setState(() {
+                _source = value;
+                _error = null;
+              });
+            },
+            children: {
+              'favorites': Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text('Favorites', style: BentoTheme.subtitle.copyWith(color: BentoTheme.textPrimary)),
               ),
-            ),
-            'trending': Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                'Trending',
-                style: IOSTheme.subhead.copyWith(color: Colors.white70),
+              'trending': Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text('Trending', style: BentoTheme.subtitle.copyWith(color: BentoTheme.textPrimary)),
               ),
-            ),
-          },
+            },
+          ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         ...movies.map(_buildMovieTile).toList(),
       ],
     );
@@ -325,45 +329,49 @@ class _MovieQuizScreenState extends State<MovieQuizScreen> {
     final poster = movie['poster']?.toString();
     final title = movie['title']?.toString() ?? 'Unknown title';
     final year = movie['year']?.toString();
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
-      ),
-      child: ListTile(
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: BentoCard(
         onTap: () {
           setState(() {
             _selectedMovie = movie;
           });
           _startQuizForMovie(movie);
         },
-        leading: Container(
-          width: 48,
-          height: 72,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            color: Colors.white.withOpacity(0.1),
-            image: poster != null && poster.isNotEmpty
-                ? DecorationImage(
-                    image: NetworkImage(poster),
-                    fit: BoxFit.cover,
-                  )
-                : null,
-          ),
-          child: poster != null && poster.isNotEmpty
-              ? null
-              : const Icon(CupertinoIcons.film, color: Colors.white54),
-        ),
-        title: Text(title, style: IOSTheme.title3.copyWith(color: Colors.white)),
-        subtitle: year == null
-            ? null
-            : Text(
-                year,
-                style: IOSTheme.subhead.copyWith(color: Colors.white60),
+        padding: const EdgeInsets.all(12),
+        borderRadius: BorderRadius.circular(BentoTheme.radiusMedium),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: SizedBox(
+                width: 50,
+                height: 72,
+                child: poster != null && poster.isNotEmpty
+                    ? Image.network(poster, fit: BoxFit.cover)
+                    : Container(
+                        decoration: const BoxDecoration(gradient: BentoTheme.surfaceGradient),
+                        child: const Icon(CupertinoIcons.film, color: Colors.white54),
+                      ),
               ),
-        trailing: const Icon(CupertinoIcons.play_circle_fill, color: IOSTheme.systemBlue),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: BentoTheme.title.copyWith(color: Colors.white)),
+                  if (year != null) ...[
+                    const SizedBox(height: 4),
+                    Text(year, style: BentoTheme.caption),
+                  ],
+                ],
+              ),
+            ),
+            const Icon(CupertinoIcons.play_circle_fill, color: BentoTheme.accent, size: 24),
+          ],
+        ),
       ),
     );
   }
@@ -376,33 +384,31 @@ class _MovieQuizScreenState extends State<MovieQuizScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (_selectedMovie != null)
-          Text(
-            _selectedMovie?['title']?.toString() ?? '',
-            style: IOSTheme.subhead.copyWith(color: Colors.white70),
-          ),
+          Text(_selectedMovie?['title']?.toString() ?? '', style: BentoTheme.subtitle),
         const SizedBox(height: 8),
         Text(
           'Question ${_currentIndex + 1} of ${_questions.length}',
-          style: IOSTheme.subhead.copyWith(color: Colors.white60),
+          style: BentoTheme.caption,
         ),
         const SizedBox(height: 16),
-        Text(
-          currentQuestion.question,
-          style: IOSTheme.title3.copyWith(color: Colors.white),
+        BentoCard(
+          padding: const EdgeInsets.all(18),
+          borderRadius: BorderRadius.circular(BentoTheme.radiusLarge),
+          child: Text(currentQuestion.question, style: BentoTheme.title.copyWith(color: Colors.white)),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         ...options.map((option) => _buildOptionTile(option, currentQuestion.correctAnswer)),
         const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
               child: CupertinoButton(
-                color: _selectedAnswer == null ? Colors.white24 : IOSTheme.systemBlue,
+                color: _selectedAnswer == null ? Colors.white24 : BentoTheme.accent,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 onPressed: _selectedAnswer == null ? null : _nextQuestion,
                 child: Text(
                   _currentIndex == _questions.length - 1 ? 'Finish' : 'Next',
-                  style: IOSTheme.headline.copyWith(color: Colors.white),
+                  style: BentoTheme.subtitle.copyWith(color: Colors.white),
                 ),
               ),
             ),
@@ -416,78 +422,69 @@ class _MovieQuizScreenState extends State<MovieQuizScreen> {
     final isSelected = option == _selectedAnswer;
     final isCorrect = option == correctAnswer;
 
-    Color background = Colors.white.withOpacity(0.05);
-    Color border = Colors.white.withOpacity(0.08);
+    Color background = BentoTheme.surfaceAlt.withOpacity(0.8);
+    Color border = BentoTheme.outline;
     if (_selectedAnswer != null) {
       if (isCorrect) {
-        background = IOSTheme.systemBlue.withOpacity(0.25);
-        border = IOSTheme.systemBlue.withOpacity(0.6);
+        background = BentoTheme.accent.withOpacity(0.25);
+        border = BentoTheme.accent.withOpacity(0.7);
       } else if (isSelected) {
         background = Colors.redAccent.withOpacity(0.25);
-        border = Colors.redAccent.withOpacity(0.6);
+        border = Colors.redAccent.withOpacity(0.7);
       }
     } else if (isSelected) {
-      background = IOSTheme.systemBlue.withOpacity(0.2);
-      border = IOSTheme.systemBlue.withOpacity(0.5);
+      background = BentoTheme.accent.withOpacity(0.2);
+      border = BentoTheme.accent.withOpacity(0.5);
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: BentoCard(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        borderRadius: BorderRadius.circular(BentoTheme.radiusMedium),
         color: background,
-        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: border),
-      ),
-      child: ListTile(
         onTap: () => _selectAnswer(option),
-        title: Text(
-          option,
-          style: IOSTheme.body.copyWith(color: Colors.white),
-        ),
-        trailing: _selectedAnswer == null
-            ? null
-            : Icon(
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(option, style: BentoTheme.body.copyWith(color: Colors.white)),
+            ),
+            if (_selectedAnswer != null)
+              Icon(
                 isCorrect
                     ? CupertinoIcons.check_mark_circled_solid
                     : isSelected
                         ? CupertinoIcons.xmark_circle_fill
                         : CupertinoIcons.circle,
                 color: isCorrect
-                    ? IOSTheme.systemBlue
+                    ? BentoTheme.accent
                     : isSelected
                         ? Colors.redAccent
                         : Colors.white24,
               ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildResults() {
-    return Container(
+    return BentoCard(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
-      ),
+      borderRadius: BorderRadius.circular(BentoTheme.radiusLarge),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(CupertinoIcons.star_fill, color: IOSTheme.systemBlue, size: 28),
+          const Icon(CupertinoIcons.star_fill, color: BentoTheme.highlight, size: 28),
           const SizedBox(height: 12),
-          Text(
-            'Quiz Complete',
-            style: IOSTheme.title3.copyWith(color: Colors.white),
-          ),
+          Text('Quiz Complete', style: BentoTheme.title.copyWith(color: Colors.white)),
           const SizedBox(height: 8),
-          Text(
-            'You scored $_score out of ${_questions.length}.',
-            style: IOSTheme.body.copyWith(color: Colors.white70),
-          ),
+          Text('You scored $_score out of ${_questions.length}.', style: BentoTheme.body),
           const SizedBox(height: 20),
           CupertinoButton(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-            color: IOSTheme.systemBlue,
+            color: BentoTheme.accent,
             onPressed: () {
               setState(() {
                 _currentIndex = 0;
@@ -496,14 +493,20 @@ class _MovieQuizScreenState extends State<MovieQuizScreen> {
                 _showResults = false;
               });
             },
-            child: const Text('Retry Quiz'),
+            child: Text(
+              'Retry Quiz',
+              style: BentoTheme.subtitle.copyWith(color: Colors.white),
+            ),
           ),
           const SizedBox(height: 12),
           CupertinoButton(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
             color: Colors.white24,
             onPressed: _resetQuiz,
-            child: const Text('Choose Another Movie'),
+            child: Text(
+              'Try Another Quiz',
+              style: BentoTheme.subtitle.copyWith(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -515,24 +518,17 @@ class _MovieQuizScreenState extends State<MovieQuizScreen> {
     required String title,
     required String message,
   }) {
-    return Container(
+    return BentoCard(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
-      ),
+      borderRadius: BorderRadius.circular(BentoTheme.radiusLarge),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: IOSTheme.systemBlue, size: 28),
+          Icon(icon, color: BentoTheme.accent, size: 28),
           const SizedBox(height: 12),
-          Text(title, style: IOSTheme.title3.copyWith(color: Colors.white)),
+          Text(title, style: BentoTheme.title.copyWith(color: Colors.white)),
           const SizedBox(height: 8),
-          Text(
-            message,
-            style: IOSTheme.body.copyWith(color: Colors.white70),
-          ),
+          Text(message, style: BentoTheme.body),
         ],
       ),
     );

@@ -1,6 +1,7 @@
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
+import 'package:moviemagicbox/utils/bento_theme.dart';
 
 class NotificationService {
 
@@ -12,23 +13,23 @@ class NotificationService {
   }) async {
 
       if (!context.mounted) return;
-      final requestAgain = await showDialog<bool>(
+      await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: Colors.grey[900],
-          title: const Text('Notifications Disabled', style: TextStyle(color: Colors.white)),
+          backgroundColor: BentoTheme.surface,
+          title: const Text('Notifications Disabled', style: TextStyle(color: BentoTheme.textPrimary)),
           content: const Text(
             'Notifications are required for reminders. Would you like to enable them?',
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: BentoTheme.textSecondary),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('No', style: TextStyle(color: Colors.white)),
+              child: const Text('No', style: TextStyle(color: BentoTheme.textSecondary)),
             ),
             TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Yes', style: TextStyle(color: Color(0xFF0A84FF))),
+              child: const Text('Yes', style: TextStyle(color: BentoTheme.accent)),
             ),
           ],
         ));

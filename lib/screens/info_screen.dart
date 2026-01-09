@@ -3,12 +3,14 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:moviemagicbox/utils/ios_theme.dart';
+import 'package:moviemagicbox/utils/bento_theme.dart';
+import 'package:moviemagicbox/widgets/bento_card.dart';
 import '../services/favorites_service.dart';
 import '../services/review_service.dart';
 import '../services/streaming_service.dart';
 import '../services/ads_service.dart';
 import '../services/api_service.dart';
+import '../services/recently_viewed_service.dart';
 import '../widgets/ai_loader.dart';
 import 'review_screen.dart';
 import 'movie_quiz_screen.dart';
@@ -30,16 +32,13 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> with TickerProv
   final ApiService _apiService = ApiService();
   Future<List<String>>? _castFuture;
   late final String _imdbId;
-  
+
   bool _isFavorite = false;
   late String _movieId;
   final ScrollController _scrollController = ScrollController();
-  
-  // Animation controllers
+
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
@@ -47,37 +46,27 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> with TickerProv
     _movieId = widget.movie['imdbID'] ?? '${widget.movie["title"]}_${widget.movie["year"]}';
     _imdbId = _resolveImdbId(widget.movie);
 
+    RecentlyViewedService.addRecentlyViewed(widget.movie);
     _checkFavoriteStatus();
     _loadReviews();
-    
+
     streamingData = StreamingService.getStreamingAvailability(
-        widget.movie["title"],
-        type: widget.movie["type"] ?? 'movie'
+      widget.movie['title'],
+      type: widget.movie['type'] ?? 'movie',
     );
 
-    // Fade in animation for content
     _fadeController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 600),
     );
     _fadeAnimation = CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
     _fadeController.forward();
-
-    // Pulse animation for the play button
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
     _fadeController.dispose();
-    _pulseController.dispose();
     super.dispose();
   }
 
@@ -196,7 +185,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> with TickerProv
   }
 
   void _launchYouTubeSearch(String query) async {
-    final Uri url = Uri.parse("https://www.youtube.com/results?search_query=$query official trailer");
+    final Uri url = Uri.parse('https://www.youtube.com/results?search_query=$query official trailer');
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       throw Exception('Could not launch $url');
     }
@@ -204,9 +193,8 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> with TickerProv
 
   Future<void> _showAdAndPlayTrailer(String query) async {
     HapticFeedback.heavyImpact();
-    // Animation effect before launching
     await Future.delayed(const Duration(milliseconds: 100));
-    
+
     showCupertinoDialog(
       context: context,
       barrierDismissible: false,
@@ -217,7 +205,6 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> with TickerProv
       },
     );
 
-    // Simulate ad delay if needed
     if (context.mounted) {
       Navigator.of(context).pop();
     }
@@ -227,347 +214,266 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> with TickerProv
 
   @override
   Widget build(BuildContext context) {
+    final poster = widget.movie['poster']?.toString() ?? '';
+
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          // 1. Massive Cinematic Header
-          SliverAppBar(
-            expandedHeight: MediaQuery.of(context).size.height * 0.75, // 75% of screen height
-            floating: false,
-            pinned: true,
-            backgroundColor: Colors.black,
-            stretch: true,
-            leading: _buildGlassIconButton(
-              CupertinoIcons.arrow_left,
-              () => Navigator.pop(context),
-            ),
-            actions: [
-              _buildGlassIconButton(
-                _isFavorite ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
-                _toggleFavorite,
-                color: _isFavorite ? IOSTheme.systemBlue : Colors.white,
-              ),
-              const SizedBox(width: 8),
-              _buildGlassIconButton(
-                CupertinoIcons.bell,
-                _showReminderDialog,
-              ),
-              const SizedBox(width: 16),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              stretchModes: const [
-                StretchMode.zoomBackground,
-                StretchMode.blurBackground,
-              ],
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  // Hero Image
-                  Image.network(
-                    widget.movie["poster"] ?? "",
-                    fit: BoxFit.cover,
+      backgroundColor: BentoTheme.background,
+      body: Stack(
+        children: [
+          _buildBackground(poster),
+          CustomScrollView(
+            controller: _scrollController,
+            slivers: [
+              SliverAppBar(
+                expandedHeight: MediaQuery.of(context).size.height * 0.62,
+                floating: false,
+                pinned: true,
+                backgroundColor: Colors.transparent,
+                leading: _buildGlassButton(
+                  icon: CupertinoIcons.arrow_left,
+                  onTap: () => Navigator.pop(context),
+                ),
+                actions: [
+                  _buildGlassButton(
+                    icon: _isFavorite ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
+                    onTap: _toggleFavorite,
+                    tint: _isFavorite ? BentoTheme.accent : Colors.white,
                   ),
-                  // Gradient Overlay for text readability
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withOpacity(0.3), // Slight dim at top
-                          Colors.transparent,
-                          Colors.black.withOpacity(0.2),
-                          Colors.black.withOpacity(0.8),
-                          Colors.black,
-                        ],
-                        stops: const [0.0, 0.2, 0.5, 0.85, 1.0],
-                      ),
-                    ),
+                  const SizedBox(width: 8),
+                  _buildGlassButton(
+                    icon: CupertinoIcons.bell,
+                    onTap: _showReminderDialog,
                   ),
-                  // Title & Meta placed directly on image at bottom
-                  Positioned(
-                    bottom: 40,
-                    left: 20,
-                    right: 20,
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            (widget.movie["title"] ?? "Unknown").toString().toUpperCase(),
-                            style: IOSTheme.largeTitle.copyWith(
-                              fontSize: 40,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -1.0,
-                              height: 0.9,
-                              shadows: [
-                                Shadow(
-                                  color: IOSTheme.systemBlue.withOpacity(0.5),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 5),
-                                ),
-                              ],
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              _buildTag(widget.movie["year"] ?? "N/A"),
-                              const SizedBox(width: 8),
-                              _buildTag(widget.movie["imdbRating"] ?? "N/A", icon: CupertinoIcons.star_fill, color: Colors.amber),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  widget.movie["genre"] ?? "",
-                                  style: IOSTheme.subhead.copyWith(color: Colors.white70),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  const SizedBox(width: 12),
                 ],
-              ),
-            ),
-          ),
-
-          // 2. Content Body
-          SliverToBoxAdapter(
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Play Button Section
-                    const SizedBox(height: 20),
-                    ScaleTransition(
-                      scale: _pulseAnimation,
-                      child: GestureDetector(
-                        onTap: () => _showAdAndPlayTrailer(widget.movie["title"]),
-                        child: Container(
-                          height: 70,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(35),
-                            gradient: const LinearGradient(
-                              colors: [IOSTheme.systemBlue, Color(0xFF990000)],
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: IOSTheme.systemBlue.withOpacity(0.4),
-                                blurRadius: 25,
-                                offset: const Offset(0, 10),
-                              ),
+                flexibleSpace: FlexibleSpaceBar(
+                  stretchModes: const [StretchMode.zoomBackground, StretchMode.blurBackground],
+                  background: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (poster.isNotEmpty)
+                        Image.network(poster, fit: BoxFit.cover)
+                      else
+                        Container(decoration: const BoxDecoration(gradient: BentoTheme.surfaceGradient)),
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.2),
+                              Colors.transparent,
+                              Colors.black.withOpacity(0.8),
+                              BentoTheme.background,
                             ],
+                            stops: const [0.0, 0.35, 0.75, 1.0],
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                        ),
+                      ),
+                      Positioned(
+                        left: 20,
+                        right: 20,
+                        bottom: 30,
+                        child: FadeTransition(
+                          opacity: _fadeAnimation,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: const BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(CupertinoIcons.play_arrow_solid, color: IOSTheme.systemBlue, size: 24),
-                              ),
-                              const SizedBox(width: 16),
                               Text(
-                                "WATCH TRAILER",
-                                style: IOSTheme.title3.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.0,
-                                ),
+                                (widget.movie['title'] ?? 'Unknown').toString(),
+                                style: BentoTheme.display.copyWith(fontSize: 32, color: Colors.white),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  _buildTag(widget.movie['year'] ?? 'N/A'),
+                                  const SizedBox(width: 8),
+                                  _buildTag(widget.movie['imdbRating'] ?? 'N/A', icon: CupertinoIcons.star_fill),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      widget.movie['genre'] ?? '',
+                                      style: BentoTheme.caption.copyWith(color: BentoTheme.textSecondary),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
                         ),
                       ),
-                    ),
-
-                    const SizedBox(height: 16),
-                    GestureDetector(
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => MovieQuizScreen(movie: widget.movie),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        height: 58,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(30),
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF1C1C1E), IOSTheme.systemBlue],
-                          ),
-                          border: Border.all(color: Colors.white.withOpacity(0.1)),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                    ],
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
-                            const Icon(
-                              CupertinoIcons.question_circle_fill,
-                              color: Colors.white,
-                              size: 22,
+                            Expanded(
+                              child: _buildActionTile(
+                                label: 'Watch Trailer',
+                                icon: CupertinoIcons.play_arrow_solid,
+                                onTap: () => _showAdAndPlayTrailer(widget.movie['title']),
+                              ),
                             ),
                             const SizedBox(width: 12),
-                            Text(
-                              "TAKE QUIZ",
-                              style: IOSTheme.title3.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.0,
+                            Expanded(
+                              child: _buildActionTile(
+                                label: 'Take Quiz',
+                                icon: CupertinoIcons.question_circle_fill,
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => MovieQuizScreen(movie: widget.movie),
+                                    ),
+                                  );
+                                },
+                                accent: BentoTheme.accentSoft,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 40),
-                    
-                    // Synopsis
-                    _buildSectionTitle("THE STORY"),
-                    const SizedBox(height: 12),
-                    Text(
-                      widget.movie["plot"] ?? "No details available.",
-                      style: IOSTheme.body.copyWith(
-                        height: 1.8,
-                        color: Colors.white.withOpacity(0.8),
-                        fontSize: 18,
-                      ),
-                    ),
-
-                    const SizedBox(height: 40),
-
-                    // Cast Section (Horizontal Scroll)
-                    _buildSectionTitle("THE STARS"),
-                    const SizedBox(height: 16),
-                    _buildCastList(),
-
-                    const SizedBox(height: 40),
-                    
-                    // Available On Section
-                    _buildStreamingSection(),
-
-                    const SizedBox(height: 40),
-
-                    // Reviews Section
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildSectionTitle("THE VERDICT"),
-                        CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          child: Text("Read All", style: IOSTheme.subhead.copyWith(color: IOSTheme.systemBlue)),
-                          onPressed: () async {
-                             // Navigation to full reviews
-                             // ... existing logic ...
-                          },
+                        const SizedBox(height: 20),
+                        _buildSectionTitle('The Story'),
+                        const SizedBox(height: 10),
+                        BentoCard(
+                          padding: const EdgeInsets.all(16),
+                          borderRadius: BorderRadius.circular(BentoTheme.radiusLarge),
+                          child: Text(
+                            widget.movie['plot'] ?? 'No details available.',
+                            style: BentoTheme.body.copyWith(color: BentoTheme.textSecondary, height: 1.6),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        _buildSectionTitle('The Stars'),
+                        const SizedBox(height: 10),
+                        _buildCastList(),
+                        const SizedBox(height: 20),
+                        _buildStreamingSection(),
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _buildSectionTitle('The Verdict'),
+                            CupertinoButton(
+                              padding: EdgeInsets.zero,
+                              child: Text('Read All', style: BentoTheme.caption.copyWith(color: BentoTheme.accentSoft)),
+                              onPressed: () {},
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        _buildReviewsSummary(),
+                        const SizedBox(height: 20),
+                        BentoCard(
+                          height: 60,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: _adsService.showBannerAd(),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    _buildReviewsSummary(),
-                    
-                    const SizedBox(height: 40),
-                    
-                    // Ad Banner
-                    Container(
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      alignment: Alignment.center,
-                      child: _adsService.showBannerAd(),
-                    ),
-                    
-                    const SizedBox(height: 50), // Bottom Padding
-                  ],
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildGlassIconButton(IconData icon, VoidCallback onTap, {Color color = Colors.white}) {
+  Widget _buildBackground(String poster) {
     return Container(
-      margin: const EdgeInsets.all(8),
-      child: ClipOval(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            color: Colors.black.withOpacity(0.3),
-            child: IconButton(
-              icon: Icon(icon, color: color, size: 20),
-              onPressed: onTap,
-            ),
-          ),
-        ),
+      decoration: BoxDecoration(
+        gradient: BentoTheme.backgroundGradient,
+        image: poster.isNotEmpty
+            ? DecorationImage(
+                image: NetworkImage(poster),
+                fit: BoxFit.cover,
+                opacity: 0.08,
+              )
+            : null,
+      ),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+        child: Container(color: Colors.transparent),
       ),
     );
   }
 
-  Widget _buildTag(String text, {IconData? icon, Color? color}) {
+  Widget _buildGlassButton({required IconData icon, required VoidCallback onTap, Color tint = Colors.white}) {
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: BentoCard(
+        padding: const EdgeInsets.all(8),
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Icon(icon, color: tint, size: 18),
+      ),
+    );
+  }
+
+  Widget _buildTag(String text, {IconData? icon}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.white.withOpacity(0.3)),
-        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: BentoTheme.outline),
+        borderRadius: BorderRadius.circular(16),
         color: Colors.black.withOpacity(0.3),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 12, color: color ?? Colors.white),
+            Icon(icon, size: 12, color: BentoTheme.highlight),
             const SizedBox(width: 4),
           ],
-          Text(
-            text,
-            style: IOSTheme.caption1.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
+          Text(text, style: BentoTheme.caption.copyWith(color: Colors.white)),
         ],
       ),
     );
   }
 
   Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: IOSTheme.subhead.copyWith(
-        color: IOSTheme.systemBlue,
-        fontWeight: FontWeight.w900,
-        letterSpacing: 2.0,
+    return Text(title, style: BentoTheme.subtitle.copyWith(color: BentoTheme.accentSoft));
+  }
+
+  Widget _buildActionTile({
+    required String label,
+    required IconData icon,
+    required VoidCallback onTap,
+    Color accent = BentoTheme.accent,
+  }) {
+    return BentoCard(
+      onTap: onTap,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      borderRadius: BorderRadius.circular(BentoTheme.radiusMedium),
+      gradient: BentoTheme.surfaceGradient,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: accent, size: 18),
+          const SizedBox(width: 8),
+          Text(label, style: BentoTheme.subtitle.copyWith(color: Colors.white)),
+        ],
       ),
     );
   }
 
   Widget _buildCastList() {
-    // If we have cast in the initial movie object, use it.
-    // Otherwise, we might need to wait for full details.
-    
     final initialCast = _extractCastFromData(widget.movie);
     _castFuture ??= initialCast.isNotEmpty
         ? Future.value(initialCast)
@@ -593,51 +499,55 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> with TickerProv
         }
 
         if (cast.isEmpty) {
-          return const Text("No cast info", style: TextStyle(color: Colors.white54));
+          return Text('No cast info', style: BentoTheme.body.copyWith(color: BentoTheme.textMuted));
         }
 
         return SizedBox(
-          height: 112,
+          height: 116,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: cast.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 16),
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
               final actorName = cast[index];
-              return Column(
-                children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.1),
-                      border: Border.all(color: Colors.white.withOpacity(0.2)),
-                      image: const DecorationImage(
-                        image: AssetImage('lib/assets/images/profile-pic.png'), // Placeholder or implement actor image search
-                        fit: BoxFit.cover,
+              return BentoCard(
+                padding: const EdgeInsets.all(10),
+                borderRadius: BorderRadius.circular(BentoTheme.radiusMedium),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 58,
+                      height: 58,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: BentoTheme.surfaceAlt,
+                        border: Border.all(color: BentoTheme.outline),
+                        image: const DecorationImage(
+                          image: AssetImage('lib/assets/images/profile-pic.png'),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: actorName.isNotEmpty ? null : const Icon(CupertinoIcons.person, color: Colors.white),
+                    ),
+                    const SizedBox(height: 6),
+                    SizedBox(
+                      width: 70,
+                      child: Text(
+                        actorName,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: BentoTheme.caption.copyWith(color: BentoTheme.textSecondary),
                       ),
                     ),
-                    alignment: Alignment.center,
-                    child: actorName.isNotEmpty ? null : const Icon(CupertinoIcons.person, color: Colors.white),
-                  ),
-                  const SizedBox(height: 6),
-                  SizedBox(
-                    width: 70,
-                    child: Text(
-                      actorName,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: IOSTheme.caption1.copyWith(color: Colors.white70),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               );
             },
           ),
         );
-      }
+      },
     );
   }
 
@@ -667,7 +577,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> with TickerProv
     }
     return [];
   }
-  
+
   Widget _buildStreamingSection() {
     return FutureBuilder<Map<String, dynamic>>(
       future: streamingData,
@@ -679,41 +589,37 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> with TickerProv
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSectionTitle("AVAILABLE ON"),
-            const SizedBox(height: 16),
+            _buildSectionTitle('Available On'),
+            const SizedBox(height: 10),
             Wrap(
               spacing: 12,
               runSpacing: 12,
               children: streamingInfo.map<Widget>((service) {
-                return GestureDetector(
+                return BentoCard(
                   onTap: () async {
-                    final url = Uri.parse(service["link"]);
+                    final url = Uri.parse(service['link']);
                     if (await canLaunchUrl(url)) {
-                       await launchUrl(url, mode: LaunchMode.externalApplication);
+                      await launchUrl(url, mode: LaunchMode.externalApplication);
                     }
                   },
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withOpacity(0.1)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                         Icon(
-                            service["service"] == "netflix" ? CupertinoIcons.play_rectangle_fill : CupertinoIcons.tv_fill,
-                            color: service["service"] == "netflix" ? const Color(0xFFE50914) : Colors.white,
-                            size: 20,
-                          ),
-                         const SizedBox(width: 8),
-                         Text(
-                           service["service"].toString().toUpperCase(),
-                           style: IOSTheme.caption1.copyWith(fontWeight: FontWeight.bold),
-                         ),
-                      ],
-                    ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  borderRadius: BorderRadius.circular(BentoTheme.radiusMedium),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        service['service'] == 'netflix'
+                            ? CupertinoIcons.play_rectangle_fill
+                            : CupertinoIcons.tv_fill,
+                        color: service['service'] == 'netflix' ? const Color(0xFFE50914) : Colors.white,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        service['service'].toString().toUpperCase(),
+                        style: BentoTheme.caption.copyWith(color: Colors.white),
+                      ),
+                    ],
                   ),
                 );
               }).toList(),
@@ -733,61 +639,46 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> with TickerProv
         }
         final reviews = snapshot.data ?? [];
         if (reviews.isEmpty) {
-          return Center(
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                children: [
-                  const Icon(CupertinoIcons.chat_bubble_2, color: Colors.white30, size: 32),
-                  const SizedBox(height: 8),
-                  Text("No reviews yet", style: IOSTheme.subhead.copyWith(color: Colors.white54)),
-                  const SizedBox(height: 16),
-                  CupertinoButton(
-                    minSize: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    onPressed: () async {
-                       final existingReview = await userReview;
-                        if (!mounted) return;
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ReviewScreen(
-                              media: widget.movie,
-                              type: widget.movie['Type'] ?? 'movie',
-                              existingReview: existingReview,
-                            ),
-                          ),
-                        );
-                        if (result == true) setState(() => _loadReviews());
-                    },
-                    child: const Text("Be the first to review", style: TextStyle(color: Colors.white, fontSize: 14)),
-                  ),
-                ],
-              ),
+          return BentoCard(
+            padding: const EdgeInsets.all(20),
+            borderRadius: BorderRadius.circular(BentoTheme.radiusLarge),
+            child: Column(
+              children: [
+                const Icon(CupertinoIcons.chat_bubble_2, color: BentoTheme.textMuted, size: 32),
+                const SizedBox(height: 8),
+                Text('No reviews yet', style: BentoTheme.subtitle.copyWith(color: BentoTheme.textSecondary)),
+                const SizedBox(height: 12),
+                CupertinoButton(
+                  minSize: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                  color: BentoTheme.surfaceAlt,
+                  borderRadius: BorderRadius.circular(20),
+                  onPressed: () async {
+                    final existingReview = await userReview;
+                    if (!mounted) return;
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ReviewScreen(
+                          media: widget.movie,
+                          type: widget.movie['Type'] ?? 'movie',
+                          existingReview: existingReview,
+                        ),
+                      ),
+                    );
+                    if (result == true) setState(() => _loadReviews());
+                  },
+                  child: const Text('Be the first to review', style: TextStyle(color: Colors.white, fontSize: 14)),
+                ),
+              ],
             ),
           );
         }
 
-        // Show just the top review in a nice card
         final topReview = reviews.first;
-        return Container(
-          width: double.infinity,
+        return BentoCard(
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.05)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
-          ),
+          borderRadius: BorderRadius.circular(BentoTheme.radiusLarge),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -796,51 +687,47 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> with TickerProv
                 children: [
                   Row(
                     children: [
-                      const Icon(CupertinoIcons.quote_bubble_fill, color: IOSTheme.systemBlue, size: 20),
+                      const Icon(CupertinoIcons.quote_bubble_fill, color: BentoTheme.accent, size: 18),
                       const SizedBox(width: 8),
-                      Text("Featured Review", style: IOSTheme.caption1.copyWith(color: Colors.white54)),
+                      Text('Featured Review', style: BentoTheme.caption),
                     ],
                   ),
                   Row(
                     children: [
-                      const Icon(CupertinoIcons.star_fill, color: Colors.amber, size: 14),
+                      const Icon(CupertinoIcons.star_fill, color: BentoTheme.highlight, size: 14),
                       const SizedBox(width: 4),
-                      Text(topReview.rating.toStringAsFixed(1), style: IOSTheme.subhead.copyWith(fontWeight: FontWeight.bold)),
+                      Text(topReview.rating.toStringAsFixed(1), style: BentoTheme.caption.copyWith(color: Colors.white)),
                     ],
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              Text(
-                topReview.title,
-                style: IOSTheme.headline.copyWith(fontSize: 18),
-              ),
+              Text(topReview.title, style: BentoTheme.title.copyWith(color: Colors.white)),
               const SizedBox(height: 8),
               Text(
                 topReview.content,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
-                style: IOSTheme.body.copyWith(color: Colors.white70, fontSize: 15),
+                style: BentoTheme.body.copyWith(color: BentoTheme.textSecondary),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               GestureDetector(
                 onTap: () async {
-                    // Navigate to reviews
-                     final existingReview = await userReview;
-                      if (!mounted) return;
-                      final result = await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ReviewScreen(
-                            media: widget.movie,
-                            type: widget.movie['Type'] ?? 'movie',
-                            existingReview: existingReview,
-                          ),
-                        ),
-                      );
-                      if (result == true) setState(() => _loadReviews());
+                  final existingReview = await userReview;
+                  if (!mounted) return;
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ReviewScreen(
+                        media: widget.movie,
+                        type: widget.movie['Type'] ?? 'movie',
+                        existingReview: existingReview,
+                      ),
+                    ),
+                  );
+                  if (result == true) setState(() => _loadReviews());
                 },
-                child: Text("Read more", style: IOSTheme.subhead.copyWith(color: IOSTheme.systemBlue)),
+                child: Text('Read more', style: BentoTheme.caption.copyWith(color: BentoTheme.accentSoft)),
               ),
             ],
           ),

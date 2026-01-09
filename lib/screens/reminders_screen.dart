@@ -3,7 +3,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:moviemagicbox/utils/ios_theme.dart';
+import 'package:moviemagicbox/utils/bento_theme.dart';
+import 'package:moviemagicbox/widgets/bento_card.dart';
 
 class RemindersScreen extends StatefulWidget {
   const RemindersScreen({super.key});
@@ -34,8 +35,6 @@ class _RemindersScreenState extends State<RemindersScreen> with SingleTickerProv
   }
 
   void _loadReminders() {
-    // Load reminders from local storage or service
-    // Placeholder for now as the original implementation was empty
     setState(() {
       _remindersFuture = Future.value([]);
     });
@@ -63,7 +62,6 @@ class _RemindersScreenState extends State<RemindersScreen> with SingleTickerProv
     );
 
     if (confirmed == true) {
-      // Logic to delete reminder
       setState(() {
         _loadReminders();
       });
@@ -74,122 +72,34 @@ class _RemindersScreenState extends State<RemindersScreen> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: BentoTheme.background,
       body: Stack(
         children: [
-          // Ambient Background
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF1A0505), // Dark Red tint
-                  Colors.black,
-                  Color(0xFF0D0D0D),
-                ],
-              ),
-            ),
-          ),
-
+          _buildBackground(),
           CustomScrollView(
             slivers: [
-              // Large Header
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(24, MediaQuery.of(context).padding.top + 20, 24, 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(CupertinoIcons.arrow_left, color: Colors.white),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        "Movie",
-                        style: IOSTheme.largeTitle.copyWith(
-                          fontSize: 42,
-                          color: Colors.white.withOpacity(0.9),
-                          letterSpacing: -1,
-                        ),
-                      ),
-                      Text(
-                        "Reminders",
-                        style: IOSTheme.title1.copyWith(
-                          color: IOSTheme.systemBlue,
-                          fontWeight: FontWeight.w300,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Content
+              SliverToBoxAdapter(child: _buildHeader()),
               FutureBuilder<List<Map<String, dynamic>>>(
                 future: _remindersFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const SliverFillRemaining(
-                      child: Center(child: CupertinoActivityIndicator(color: Colors.white, radius: 15)),
+                      child: Center(
+                        child: CupertinoActivityIndicator(color: Colors.white, radius: 14),
+                      ),
                     );
                   }
 
                   if (snapshot.hasError) {
-                    return SliverFillRemaining(
-                      child: Center(
-                        child: Text('Error loading reminders', style: IOSTheme.body),
-                      ),
-                    );
+                    return SliverFillRemaining(child: _buildMessage('Error loading reminders'));
                   }
 
                   final reminders = snapshot.data ?? [];
 
                   if (reminders.isEmpty) {
-                    return SliverFillRemaining(
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.05),
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white.withOpacity(0.1)),
-                              ),
-                              child: Icon(
-                                CupertinoIcons.bell_slash,
-                                color: Colors.white.withOpacity(0.3),
-                                size: 64,
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            Text(
-                              'No reminders set',
-                              style: IOSTheme.title3.copyWith(color: Colors.white),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Tap the bell icon on movie details to set one',
-                              style: IOSTheme.body.copyWith(color: Colors.white.withOpacity(0.5)),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
+                    return SliverFillRemaining(child: _buildEmptyState());
                   }
 
-                  // Sort reminders by date
                   reminders.sort((a, b) => (a['scheduledTime'] as DateTime)
                       .compareTo(b['scheduledTime'] as DateTime));
 
@@ -200,7 +110,6 @@ class _RemindersScreenState extends State<RemindersScreen> with SingleTickerProv
                         final DateTime scheduledTime = reminder['scheduledTime'] as DateTime;
                         final bool isPast = scheduledTime.isBefore(DateTime.now());
 
-                        // Staggered animation
                         final animation = CurvedAnimation(
                           parent: _animationController,
                           curve: Interval(
@@ -214,7 +123,7 @@ class _RemindersScreenState extends State<RemindersScreen> with SingleTickerProv
                           animation: _animationController,
                           builder: (context, child) {
                             return Transform.translate(
-                              offset: Offset(0, 30 * (1 - animation.value)),
+                              offset: Offset(0, 24 * (1 - animation.value)),
                               child: Opacity(
                                 opacity: animation.value,
                                 child: child,
@@ -225,10 +134,10 @@ class _RemindersScreenState extends State<RemindersScreen> with SingleTickerProv
                             key: Key(reminder['movieId']),
                             direction: DismissDirection.endToStart,
                             background: Container(
-                              margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
+                              margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
                               decoration: BoxDecoration(
-                                color: IOSTheme.systemBlue,
-                                borderRadius: BorderRadius.circular(16),
+                                color: BentoTheme.accent,
+                                borderRadius: BorderRadius.circular(BentoTheme.radiusMedium),
                               ),
                               alignment: Alignment.centerRight,
                               padding: const EdgeInsets.only(right: 24),
@@ -238,47 +147,50 @@ class _RemindersScreenState extends State<RemindersScreen> with SingleTickerProv
                               reminder['movieId'],
                               reminder['title'],
                             ),
-                            child: Container(
-                              margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.05),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.white.withOpacity(0.1)),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                child: BackdropFilter(
-                                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                                  child: ListTile(
-                                    contentPadding: const EdgeInsets.all(16),
-                                    leading: Container(
-                                      padding: const EdgeInsets.all(10),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                              child: BentoCard(
+                                padding: const EdgeInsets.all(16),
+                                borderRadius: BorderRadius.circular(BentoTheme.radiusMedium),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
                                       decoration: BoxDecoration(
-                                        color: isPast ? Colors.white10 : IOSTheme.systemBlue.withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(12),
+                                        color: isPast
+                                            ? BentoTheme.surfaceAlt
+                                            : BentoTheme.accent.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(14),
+                                        border: Border.all(color: BentoTheme.outline),
                                       ),
                                       child: Icon(
                                         CupertinoIcons.bell_fill,
-                                        color: isPast ? Colors.white38 : IOSTheme.systemBlue,
+                                        color: isPast ? BentoTheme.textMuted : BentoTheme.accent,
                                       ),
                                     ),
-                                    title: Text(
-                                      reminder['title'],
-                                      style: IOSTheme.headline.copyWith(
-                                        color: isPast ? Colors.white38 : Colors.white,
-                                        decoration: isPast ? TextDecoration.lineThrough : null,
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            reminder['title'],
+                                            style: BentoTheme.title.copyWith(
+                                              color: isPast ? BentoTheme.textMuted : Colors.white,
+                                              decoration: isPast ? TextDecoration.lineThrough : null,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            DateFormat('MMM d, y - h:mm a').format(scheduledTime),
+                                            style: BentoTheme.caption.copyWith(
+                                              color: isPast ? BentoTheme.textMuted : BentoTheme.textSecondary,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                    subtitle: Padding(
-                                      padding: const EdgeInsets.only(top: 4),
-                                      child: Text(
-                                        DateFormat('MMM d, y - h:mm a').format(scheduledTime),
-                                        style: IOSTheme.caption1.copyWith(
-                                          color: isPast ? Colors.white24 : Colors.white60,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
+                                  ],
                                 ),
                               ),
                             ),
@@ -290,11 +202,73 @@ class _RemindersScreenState extends State<RemindersScreen> with SingleTickerProv
                   );
                 },
               ),
-              
-              const SliverToBoxAdapter(child: SizedBox(height: 40)),
+              const SliverToBoxAdapter(child: SizedBox(height: 60)),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBackground() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: BentoTheme.backgroundGradient,
+      ),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+        child: Container(color: Colors.transparent),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(24, MediaQuery.of(context).padding.top + 20, 24, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Reminders', style: BentoTheme.subtitle.copyWith(letterSpacing: 1.4)),
+          const SizedBox(height: 6),
+          Text('Your watch alerts', style: BentoTheme.display),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: BentoCard(
+        padding: const EdgeInsets.all(24),
+        borderRadius: BorderRadius.circular(BentoTheme.radiusLarge),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: BentoTheme.surfaceAlt.withOpacity(0.8),
+                border: Border.all(color: BentoTheme.outline),
+              ),
+              child: const Icon(CupertinoIcons.bell_slash, color: BentoTheme.textMuted, size: 36),
+            ),
+            const SizedBox(height: 16),
+            Text('No reminders set', style: BentoTheme.title.copyWith(color: Colors.white)),
+            const SizedBox(height: 8),
+            Text('Tap the bell icon on movie details to set one', style: BentoTheme.body, textAlign: TextAlign.center),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMessage(String text) {
+    return Center(
+      child: BentoCard(
+        padding: const EdgeInsets.all(24),
+        borderRadius: BorderRadius.circular(BentoTheme.radiusLarge),
+        child: Text(text, style: BentoTheme.body.copyWith(color: Colors.white70)),
       ),
     );
   }

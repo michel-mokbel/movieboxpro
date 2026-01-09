@@ -2,7 +2,8 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:moviemagicbox/utils/ios_theme.dart';
+import 'package:moviemagicbox/utils/bento_theme.dart';
+import 'package:moviemagicbox/widgets/bento_card.dart';
 import 'package:uuid/uuid.dart';
 import '../services/review_service.dart';
 
@@ -105,32 +106,29 @@ class _ReviewScreenState extends State<ReviewScreen> with SingleTickerProviderSt
     }
   }
 
-  Widget _buildGlassTextField({
+  Widget _buildBentoTextField({
     required TextEditingController controller,
     required String placeholder,
     int maxLines = 1,
     String? Function(String?)? validator,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
-      ),
+    return BentoCard(
+      padding: EdgeInsets.zero,
+      borderRadius: BorderRadius.circular(BentoTheme.radiusMedium),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(BentoTheme.radiusMedium),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: TextFormField(
             controller: controller,
-            style: IOSTheme.body,
+            style: BentoTheme.body.copyWith(color: BentoTheme.textPrimary),
             maxLines: maxLines,
             decoration: InputDecoration(
               hintText: placeholder,
-              hintStyle: IOSTheme.body.copyWith(color: Colors.white.withOpacity(0.3)),
+              hintStyle: BentoTheme.body.copyWith(color: BentoTheme.textMuted),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.all(16),
-              errorStyle: IOSTheme.caption1.copyWith(color: IOSTheme.systemBlue),
+              errorStyle: BentoTheme.caption.copyWith(color: BentoTheme.accent),
             ),
             validator: validator,
           ),
@@ -142,35 +140,10 @@ class _ReviewScreenState extends State<ReviewScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: BentoTheme.background,
       body: Stack(
         children: [
-          // Ambient Background
-          Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: NetworkImage(widget.media['poster'] ?? ''),
-                fit: BoxFit.cover,
-                opacity: 0.1,
-              ),
-            ),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withOpacity(0.2),
-                      Colors.black,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-
+          _buildBackground(),
           CustomScrollView(
             slivers: [
               SliverAppBar(
@@ -179,13 +152,10 @@ class _ReviewScreenState extends State<ReviewScreen> with SingleTickerProviderSt
                 pinned: true,
                 leading: GestureDetector(
                   onTap: () => Navigator.pop(context),
-                  child: Container(
-                    margin: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.1),
-                    ),
-                    child: const Icon(CupertinoIcons.xmark, color: Colors.white, size: 20),
+                  child: BentoCard(
+                    padding: const EdgeInsets.all(8),
+                    borderRadius: BorderRadius.circular(14),
+                    child: const Icon(CupertinoIcons.xmark, color: Colors.white, size: 18),
                   ),
                 ),
                 actions: [
@@ -213,30 +183,26 @@ class _ReviewScreenState extends State<ReviewScreen> with SingleTickerProviderSt
                         );
 
                         if (confirm == true) {
-                          await ReviewService.deleteReview(widget.media['imdbID'] ?? 
+                          await ReviewService.deleteReview(widget.media['imdbID'] ??
                               '${widget.media["title"]}_${widget.media["year"]}');
                           if (!mounted) return;
                           Navigator.pop(context, true);
                         }
                       },
-                      child: Container(
-                        margin: const EdgeInsets.all(8),
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.1),
-                        ),
-                        child: const Icon(CupertinoIcons.trash, color: IOSTheme.systemBlue, size: 20),
+                      child: BentoCard(
+                        padding: const EdgeInsets.all(8),
+                        borderRadius: BorderRadius.circular(14),
+                        child: const Icon(CupertinoIcons.trash, color: BentoTheme.accent, size: 18),
                       ),
                     ),
+                  const SizedBox(width: 8),
                 ],
               ),
-
               SliverToBoxAdapter(
                 child: FadeTransition(
                   opacity: _fadeAnimation,
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(20),
                     child: Form(
                       key: _formKey,
                       child: Column(
@@ -244,84 +210,62 @@ class _ReviewScreenState extends State<ReviewScreen> with SingleTickerProviderSt
                         children: [
                           Text(
                             widget.existingReview == null ? 'Write Review' : 'Edit Review',
-                            style: IOSTheme.largeTitle,
+                            style: BentoTheme.display,
                           ),
-                          const SizedBox(height: 32),
-
-                          // Media Info
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.3),
-                                      blurRadius: 15,
-                                      offset: const Offset(0, 8),
-                                    ),
-                                  ],
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(16),
+                          const SizedBox(height: 20),
+                          BentoCard(
+                            padding: const EdgeInsets.all(16),
+                            borderRadius: BorderRadius.circular(BentoTheme.radiusLarge),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(14),
                                   child: Image.network(
                                     widget.media['poster'] ?? '',
-                                    height: 120,
-                                    width: 80,
+                                    height: 110,
+                                    width: 76,
                                     fit: BoxFit.cover,
                                     errorBuilder: (context, error, stackTrace) => Container(
-                                      height: 120,
-                                      width: 80,
-                                      color: Colors.grey[800],
-                                      child: const Icon(CupertinoIcons.film, color: Colors.white),
+                                      height: 110,
+                                      width: 76,
+                                      decoration: const BoxDecoration(gradient: BentoTheme.surfaceGradient),
+                                      child: const Icon(CupertinoIcons.film, color: Colors.white54),
                                     ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 20),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      widget.media['title'] ?? 'Unknown Title',
-                                      style: IOSTheme.title2,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      widget.media['year'] ?? '',
-                                      style: IOSTheme.body.copyWith(color: Colors.white.withOpacity(0.6)),
-                                    ),
-                                  ],
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        widget.media['title'] ?? 'Unknown Title',
+                                        style: BentoTheme.title.copyWith(color: Colors.white),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(widget.media['year'] ?? '', style: BentoTheme.caption),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 40),
-
-                          // Rating
-                          Text('Your Rating', style: IOSTheme.headline),
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.05),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Colors.white.withOpacity(0.1)),
+                              ],
                             ),
+                          ),
+                          const SizedBox(height: 24),
+                          Text('Your Rating', style: BentoTheme.subtitle),
+                          const SizedBox(height: 12),
+                          BentoCard(
+                            padding: const EdgeInsets.all(18),
+                            borderRadius: BorderRadius.circular(BentoTheme.radiusLarge),
                             child: Column(
                               children: [
-                                Text(
-                                  _rating.toStringAsFixed(1),
-                                  style: IOSTheme.largeTitle.copyWith(color: Colors.amber),
-                                ),
+                                Text(_rating.toStringAsFixed(1), style: BentoTheme.display.copyWith(color: BentoTheme.highlight)),
                                 SliderTheme(
                                   data: SliderTheme.of(context).copyWith(
-                                    activeTrackColor: Colors.amber,
+                                    activeTrackColor: BentoTheme.highlight,
                                     inactiveTrackColor: Colors.white.withOpacity(0.1),
                                     thumbColor: Colors.white,
-                                    overlayColor: Colors.amber.withOpacity(0.2),
+                                    overlayColor: BentoTheme.highlight.withOpacity(0.2),
                                   ),
                                   child: Slider(
                                     value: _rating,
@@ -339,12 +283,10 @@ class _ReviewScreenState extends State<ReviewScreen> with SingleTickerProviderSt
                               ],
                             ),
                           ),
-                          const SizedBox(height: 32),
-
-                          // Inputs
-                          Text('Review Details', style: IOSTheme.headline),
-                          const SizedBox(height: 16),
-                          _buildGlassTextField(
+                          const SizedBox(height: 24),
+                          Text('Review Details', style: BentoTheme.subtitle),
+                          const SizedBox(height: 12),
+                          _buildBentoTextField(
                             controller: _titleController,
                             placeholder: 'Title (e.g., Great Movie!)',
                             validator: (value) {
@@ -354,8 +296,8 @@ class _ReviewScreenState extends State<ReviewScreen> with SingleTickerProviderSt
                               return null;
                             },
                           ),
-                          const SizedBox(height: 16),
-                          _buildGlassTextField(
+                          const SizedBox(height: 12),
+                          _buildBentoTextField(
                             controller: _contentController,
                             placeholder: 'Share your thoughts...',
                             maxLines: 6,
@@ -366,19 +308,18 @@ class _ReviewScreenState extends State<ReviewScreen> with SingleTickerProviderSt
                               return null;
                             },
                           ),
-                          const SizedBox(height: 40),
-
-                          // Submit Button
+                          const SizedBox(height: 28),
                           SizedBox(
                             width: double.infinity,
-                            child: CupertinoButton.filled(
+                            child: CupertinoButton(
+                              color: BentoTheme.accent,
                               borderRadius: BorderRadius.circular(16),
                               onPressed: _isSubmitting ? null : _submitReview,
                               child: _isSubmitting
                                   ? const CupertinoActivityIndicator(color: Colors.white)
                                   : Text(
                                       widget.existingReview == null ? 'Submit Review' : 'Update Review',
-                                      style: IOSTheme.headline.copyWith(color: Colors.white),
+                                      style: BentoTheme.subtitle.copyWith(color: Colors.white),
                                     ),
                             ),
                           ),
@@ -392,6 +333,26 @@ class _ReviewScreenState extends State<ReviewScreen> with SingleTickerProviderSt
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBackground() {
+    final poster = widget.media['poster']?.toString() ?? '';
+    return Container(
+      decoration: BoxDecoration(
+        gradient: BentoTheme.backgroundGradient,
+        image: poster.isNotEmpty
+            ? DecorationImage(
+                image: NetworkImage(poster),
+                fit: BoxFit.cover,
+                opacity: 0.08,
+              )
+            : null,
+      ),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+        child: Container(color: Colors.transparent),
       ),
     );
   }

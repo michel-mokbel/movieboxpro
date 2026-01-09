@@ -1,5 +1,4 @@
 import 'dart:ui';
-import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,157 +6,82 @@ import 'package:moviemagicbox/screens/info_screen.dart';
 import 'package:moviemagicbox/screens/library_screen.dart';
 import 'package:moviemagicbox/screens/mood_discovery_screen.dart';
 import 'package:moviemagicbox/screens/movie_quiz_screen.dart';
-import 'package:moviemagicbox/utils/ios_theme.dart';
+import 'package:moviemagicbox/utils/bento_theme.dart';
+import 'package:moviemagicbox/widgets/bento_card.dart';
 import '../repositories/dashboard_repository.dart';
 import '../services/ads_service.dart';
+import '../services/recently_viewed_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   final VoidCallback? onMoodRequested;
   final ValueChanged<Map<String, dynamic>?>? onQuizRequested;
+  final ValueChanged<String>? onCategorySelected;
 
   const DashboardScreen({
     super.key,
     this.onMoodRequested,
     this.onQuizRequested,
+    this.onCategorySelected,
   });
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen>
-    with SingleTickerProviderStateMixin {
+class _DashboardScreenState extends State<DashboardScreen> {
   late Future<Map<String, List<Map<String, dynamic>>>> dashboardData;
-  int _activeIndex = 0;
-  late AnimationController _animationController;
   final AdsService _adsService = AdsService();
-  final PageController _pageController = PageController(viewportFraction: 0.75);
-  
-  // Track current background image for transitions
-  String? _currentBackgroundPoster;
+
+  final List<_CategoryItem> _categories = const [
+    _CategoryItem('Action', CupertinoIcons.bolt),
+    _CategoryItem('Comedy', CupertinoIcons.smiley),
+    _CategoryItem('Drama', CupertinoIcons.eye),
+    _CategoryItem('Sci-Fi', CupertinoIcons.antenna_radiowaves_left_right),
+    _CategoryItem('Horror', CupertinoIcons.eye),
+  ];
 
   @override
   void initState() {
     super.initState();
     dashboardData = DashboardRepository.fetchDashboardData();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
-      vsync: this,
-    );
-    _animationController.forward();
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    _pageController.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: BentoTheme.background,
       body: FutureBuilder<Map<String, List<Map<String, dynamic>>>>(
         future: dashboardData,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CupertinoActivityIndicator(radius: 15, color: Colors.white));
+            return const Center(
+              child: CupertinoActivityIndicator(radius: 14, color: Colors.white),
+            );
           }
 
-          if (snapshot.hasError) {
+          if (snapshot.hasError || snapshot.data == null) {
             return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(CupertinoIcons.exclamationmark_triangle, color: IOSTheme.systemBlue, size: 40),
-                  const SizedBox(height: 16),
-                  Text('Error loading data', style: IOSTheme.body),
-                ],
-              ),
+              child: Text('Unable to load dashboard', style: BentoTheme.body),
             );
           }
 
           final data = snapshot.data!;
-          final topRated = data["topRatedMovies"]!;
-          
-          // Update background if needed
-          if (_currentBackgroundPoster == null && topRated.isNotEmpty) {
-            _currentBackgroundPoster = topRated[0]["poster"];
-          }
+          final topRated = data['topRatedMovies'] ?? [];
+          final trending = data['trendingMovies'] ?? [];
+          final featured = _pickFeatured(topRated, trending);
 
           return Stack(
             children: [
-              // 1. Dynamic Background
-              _buildDynamicBackground(topRated),
-
-              // 2. Content Scroll View
+              _buildBackground(featured?['poster']?.toString()),
               CustomScrollView(
                 slivers: [
-                  // Large Header
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(24, MediaQuery.of(context).padding.top + 20, 24, 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Discover",
-                            style: IOSTheme.largeTitle.copyWith(
-                              fontSize: 42,
-                              color: Colors.white.withOpacity(0.9),
-                              letterSpacing: -1,
-                            ),
-                          ),
-                          Text(
-                            "Movies",
-                            style: IOSTheme.title1.copyWith(
-                              color: IOSTheme.systemBlue,
-                              fontWeight: FontWeight.w300,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // 3D Cover Flow Carousel
-                  SliverToBoxAdapter(
-                    child: _build3DCarousel(topRated),
-                  ),
-
-                  // Mood Discovery CTA
-                  SliverToBoxAdapter(
-                    child: _buildMoodDiscoveryCta(),
-                  ),
-
-                  // Movie Quiz CTA
-                  SliverToBoxAdapter(
-                    child: _buildQuizCta(data),
-                  ),
-
-                  const SliverToBoxAdapter(child: SizedBox(height: 40)),
-
-                  // Trending Section (Glass List)
-                  SliverToBoxAdapter(
-                    child: _buildGlassList("Trending Now", data["trendingMovies"] ?? []),
-                  ),
-
-                  const SliverToBoxAdapter(child: SizedBox(height: 30)),
-                  
-                  // Ad
-                  SliverToBoxAdapter(
-                    child: _buildBannerAd(),
-                  ),
-
-                  const SliverToBoxAdapter(child: SizedBox(height: 30)),
-
-                  // TV Shows (Ticket Stubs)
-                  SliverToBoxAdapter(
-                    child: _buildTicketList("TV Series", data["topRatedTvShows"] ?? []),
-                  ),
-
-                  // Bottom Padding
+                  SliverToBoxAdapter(child: _buildHeader()),
+                  SliverToBoxAdapter(child: _buildFeaturedCard(featured)),
+                  SliverToBoxAdapter(child: _buildCategoryRow()),
+                  SliverToBoxAdapter(child: _buildRecentlyViewedSection()),
+                  SliverToBoxAdapter(child: _buildAiTiles(featured)),
+                  SliverToBoxAdapter(child: _buildTopPicksSection(topRated, trending)),
+                  SliverToBoxAdapter(child: _buildBannerAd()),
                   const SliverToBoxAdapter(child: SizedBox(height: 120)),
                 ],
               ),
@@ -168,605 +92,656 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  Widget _buildDynamicBackground(List<Map<String, dynamic>> movies) {
-    if (movies.isEmpty) return const SizedBox.shrink();
-    
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 800),
-      child: Container(
-        key: ValueKey<String>(_currentBackgroundPoster ?? ""),
-        decoration: BoxDecoration(
-          color: Colors.black,
-          image: _currentBackgroundPoster != null ? DecorationImage(
-            image: NetworkImage(_currentBackgroundPoster!),
-            fit: BoxFit.cover,
-            opacity: 0.4,
-          ) : null,
-        ),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withOpacity(0.2),
-                  Colors.black.withOpacity(0.8),
-                  Colors.black,
-                ],
-              ),
-            ),
-          ),
-        ),
+  Widget _buildBackground(String? poster) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: BentoTheme.backgroundGradient,
+        image: poster != null && poster.isNotEmpty
+            ? DecorationImage(
+                image: NetworkImage(poster),
+                fit: BoxFit.cover,
+                opacity: 0.22,
+              )
+            : null,
       ),
-    );
-  }
-
-  Widget _build3DCarousel(List<Map<String, dynamic>> movies) {
-    return SizedBox(
-      height: 450,
-      child: PageView.builder(
-        controller: _pageController,
-        itemCount: movies.length,
-        onPageChanged: (index) {
-          setState(() {
-            _activeIndex = index;
-            _currentBackgroundPoster = movies[index]["poster"];
-          });
-          HapticFeedback.selectionClick();
-        },
-        itemBuilder: (context, index) {
-          return AnimatedBuilder(
-            animation: _pageController,
-            builder: (context, child) {
-              double value = 0.0;
-              if (_pageController.position.haveDimensions) {
-                value = index.toDouble() - (_pageController.page ?? 0);
-              } else {
-                value = index.toDouble() - _activeIndex.toDouble();
-              }
-              
-              // 3D Rotation calculation
-              final rotation = (value * 45).clamp(-45, 45) * (math.pi / 180);
-              final scale = 1.0 - (value.abs() * 0.2);
-              final opacity = 1.0 - (value.abs() * 0.5).clamp(0.0, 0.6);
-
-              return Center(
-                child: Transform(
-                  transform: Matrix4.identity()
-                    ..setEntry(3, 2, 0.001) // Perspective
-                    ..rotateY(rotation)
-                    ..scale(scale),
-                  alignment: Alignment.center,
-                  child: Opacity(
-                    opacity: opacity,
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => MovieDetailsScreen(movie: movies[index]),
-                          ),
-                        );
-                      },
-                      child: Hero(
-                        tag: 'poster_3d_${movies[index]["imdbID"] ?? index}',
-                        child: Container(
-                          width: 280,
-                          height: 420,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.5),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: _buildPosterImage(
-                              movies[index]["poster"]?.toString(),
-                              width: 280,
-                              height: 420,
-                              radius: 20,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildMoodDiscoveryCta() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: GestureDetector(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          if (widget.onMoodRequested != null) {
-            widget.onMoodRequested!();
-            return;
-          }
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const MoodDiscoveryScreen(),
-            ),
-          );
-        },
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
         child: Container(
-          margin: const EdgeInsets.only(top: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
             gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
               colors: [
-                IOSTheme.systemBlue.withOpacity(0.2),
-                Colors.white.withOpacity(0.05),
+                BentoTheme.background.withOpacity(0.2),
+                BentoTheme.background,
               ],
             ),
-            border: Border.all(color: Colors.white.withOpacity(0.08)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: IOSTheme.systemBlue.withOpacity(0.2),
-                ),
-                child: const Icon(
-                  CupertinoIcons.sparkles,
-                  color: IOSTheme.systemBlue,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Mood Discovery',
-                      style: IOSTheme.title3.copyWith(color: Colors.white),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Match movies to how you feel right now.',
-                      style: IOSTheme.subhead.copyWith(color: Colors.white70),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(
-                CupertinoIcons.chevron_right,
-                color: Colors.white54,
-              ),
-            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildQuizCta(Map<String, List<Map<String, dynamic>>> data) {
+  Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-      child: GestureDetector(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          final quizItem = _pickRandomQuizItem(data);
-          if (quizItem == null) {
-            _showQuizUnavailableDialog();
-            return;
-          }
-          if (widget.onQuizRequested != null) {
-            widget.onQuizRequested!(quizItem);
-            return;
-          }
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => MovieQuizScreen(movie: quizItem),
-            ),
-          );
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: LinearGradient(
-              colors: [
-                Colors.white.withOpacity(0.05),
-                IOSTheme.systemBlue.withOpacity(0.2),
-              ],
-            ),
-            border: Border.all(color: Colors.white.withOpacity(0.08)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: IOSTheme.systemBlue.withOpacity(0.2),
-                ),
-                child: const Icon(
-                  CupertinoIcons.question_circle_fill,
-                  color: IOSTheme.systemBlue,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Movie Quiz',
-                      style: IOSTheme.title3.copyWith(color: Colors.white),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Random quiz from a movie or series.',
-                      style: IOSTheme.subhead.copyWith(color: Colors.white70),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(
-                CupertinoIcons.chevron_right,
-                color: Colors.white54,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Map<String, dynamic>? _pickRandomQuizItem(
-      Map<String, List<Map<String, dynamic>>> data) {
-    final items = <Map<String, dynamic>>[];
-    items.addAll(data['trendingMovies'] ?? []);
-    items.addAll(data['trendingTvShows'] ?? []);
-    items.addAll(data['topRatedMovies'] ?? []);
-    items.addAll(data['topRatedTvShows'] ?? []);
-    if (items.isEmpty) return null;
-    items.shuffle(math.Random());
-    return items.first;
-  }
-
-  void _showQuizUnavailableDialog() {
-    showCupertinoDialog(
-      context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: const Text('Quiz Unavailable'),
-        content: const Text('No movies or series are available right now.'),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
+      padding: EdgeInsets.fromLTRB(24, MediaQuery.of(context).padding.top + 20, 24, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Featured Movie', style: BentoTheme.subtitle.copyWith(letterSpacing: 1.2)),
+          const SizedBox(height: 6),
+          Text('Tonight\'s Spotlight', style: BentoTheme.display),
         ],
       ),
     );
   }
 
-  Widget _buildGlassList(String title, List<Map<String, dynamic>> movies) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(title, style: IOSTheme.title2),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => LibraryScreen(
-                        type: title.contains("TV") ? "tv_show" : "movie",
-                      ),
-                    ),
-                  );
-                },
-                child: Text("View All", style: IOSTheme.body.copyWith(color: IOSTheme.systemBlue)),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(
-          height: 240,
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            scrollDirection: Axis.horizontal,
-            itemCount: movies.length,
-            itemBuilder: (context, index) {
-              final movie = movies[index];
-              return GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => MovieDetailsScreen(movie: movie),
-                    ),
-                  );
-                },
-                child: Container(
-                  width: 160,
-                  margin: const EdgeInsets.only(right: 20),
-                  child: Column(
-                    children: [
-                      Container(
-                        height: 200,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          // Glassmorphism Border
-                          border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Colors.white.withOpacity(0.1),
-                              Colors.white.withOpacity(0.05),
-                            ],
-                          ),
-                        ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(15),
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                              _buildPosterImage(
-                                movie["poster"]?.toString(),
-                                width: 160,
-                                height: 200,
-                                radius: 15,
-                              ),
-                              // Reflection effect
-                              Positioned(
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                height: 100,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        Colors.white.withOpacity(0.2),
-                                        Colors.transparent,
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        movie["title"] ?? "Unknown",
-                        style: IOSTheme.caption1.copyWith(fontWeight: FontWeight.bold),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                      ),
+  Widget _buildFeaturedCard(Map<String, dynamic>? movie) {
+    if (movie == null) {
+      return const SizedBox.shrink();
+    }
+
+    final title = movie['title']?.toString() ?? 'Unknown';
+    final genre = _formatGenres(movie['genre']?.toString());
+    final rating = movie['imdbRating']?.toString() ?? 'N/A';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      child: BentoCard(
+        padding: EdgeInsets.zero,
+        borderRadius: BorderRadius.circular(BentoTheme.radiusLarge),
+        height: 230,
+        onTap: () => _openDetails(movie),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: _buildPosterImage(movie['poster']?.toString(), radius: BentoTheme.radiusLarge),
+            ),
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(BentoTheme.radiusLarge),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.4),
+                      Colors.black.withOpacity(0.8),
                     ],
+                    stops: const [0.2, 0.65, 1.0],
                   ),
                 ),
-              );
-            },
-          ),
+              ),
+            ),
+            Positioned(
+              left: 18,
+              right: 18,
+              bottom: 18,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: BentoTheme.title.copyWith(fontSize: 24, color: Colors.white),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(genre, style: BentoTheme.body.copyWith(color: BentoTheme.textSecondary)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(CupertinoIcons.star_fill, color: BentoTheme.highlight, size: 14),
+                      const SizedBox(width: 6),
+                      Text(rating, style: BentoTheme.body.copyWith(color: BentoTheme.textPrimary)),
+                      const SizedBox(width: 8),
+                      Text('IMDb', style: BentoTheme.caption),
+                      const Spacer(),
+                      _buildWatchButton(),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildTicketList(String title, List<Map<String, dynamic>> movies) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Text(title, style: IOSTheme.title2),
-        ),
-        ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: movies.take(5).length,
+  Widget _buildWatchButton() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: BentoTheme.accentGradient,
+        boxShadow: [
+          BoxShadow(
+            color: BentoTheme.accent.withOpacity(0.4),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Text('View Now', style: BentoTheme.caption.copyWith(color: Colors.white)),
+          const SizedBox(width: 6),
+          const Icon(CupertinoIcons.play_arrow_solid, size: 12, color: Colors.white),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryRow() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+      child: SizedBox(
+        height: 56,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: _categories.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 12),
           itemBuilder: (context, index) {
-            final movie = movies[index];
+            final item = _categories[index];
             return GestureDetector(
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => MovieDetailsScreen(movie: movie),
-                  ),
-                );
+                HapticFeedback.selectionClick();
+                if (widget.onCategorySelected != null) {
+                  widget.onCategorySelected!(item.label);
+                }
               },
               child: Container(
-                height: 100,
-                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: BentoTheme.surfaceAlt.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: BentoTheme.outline),
+                ),
                 child: Row(
                   children: [
-                    // Left stub
-                    ClipRRect(
-                      borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
-                      child: SizedBox(
-                        width: 80,
-                        height: 100,
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            _buildPosterImage(
-                              movie["poster"]?.toString(),
-                              width: 80,
-                              height: 100,
-                              radius: 12,
-                            ),
-                            Container(color: Colors.black.withOpacity(0.3)),
-                            const Center(
-                              child: Icon(CupertinoIcons.play_circle, color: Colors.white, size: 30),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // Perforation
-                    SizedBox(
-                      width: 1,
-                      child: Column(
-                        children: List.generate(10, (index) => Expanded(
-                          child: Container(color: index % 2 == 0 ? Colors.transparent : Colors.grey),
-                        )),
-                      ),
-                    ),
-                    // Right details
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1C1C1E),
-                          borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
-                          border: Border.all(color: Colors.white10),
-                        ),
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              movie["title"] ?? "Unknown",
-                              style: IOSTheme.headline,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                const Icon(CupertinoIcons.star_fill, color: Colors.amber, size: 12),
-                                const SizedBox(width: 4),
-                                Text(movie["imdbRating"] ?? "N/A", style: IOSTheme.caption1),
-                                const SizedBox(width: 12),
-                                const Icon(CupertinoIcons.calendar, color: Colors.grey, size: 12),
-                                const SizedBox(width: 4),
-                                Text(movie["year"] ?? "N/A", style: IOSTheme.caption1),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                    Icon(item.icon, color: BentoTheme.textPrimary, size: 18),
+                    const SizedBox(width: 8),
+                    Text(item.label, style: BentoTheme.subtitle.copyWith(color: BentoTheme.textPrimary)),
                   ],
                 ),
               ),
             );
           },
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildPosterImage(
-    String? url, {
-    required double width,
-    required double height,
-    double radius = 12,
-  }) {
-    final safeUrl = url ?? '';
-    final dpr = MediaQuery.of(context).devicePixelRatio;
-    final cacheWidth = (width * dpr).round();
-    final cacheHeight = (height * dpr).round();
-
-    if (safeUrl.isEmpty) {
-      return _buildPosterPlaceholder(radius);
-    }
-
-    return Image.network(
-      safeUrl,
-      fit: BoxFit.cover,
-      cacheWidth: cacheWidth,
-      cacheHeight: cacheHeight,
-      filterQuality: FilterQuality.low,
-      gaplessPlayback: true,
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) {
-          return child;
+  Widget _buildRecentlyViewedSection() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: RecentlyViewedService.getRecentlyViewed(),
+      builder: (context, snapshot) {
+        final items = snapshot.data ?? [];
+        if (items.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+            child: BentoCard(
+              padding: const EdgeInsets.all(16),
+              borderRadius: BorderRadius.circular(BentoTheme.radiusLarge),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: BentoTheme.surfaceAlt,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: BentoTheme.outline),
+                    ),
+                    child: const Icon(
+                      CupertinoIcons.clock,
+                      color: BentoTheme.textMuted,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Recently viewed titles will show up here.',
+                      style: BentoTheme.body.copyWith(color: BentoTheme.textSecondary),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
         }
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            _buildPosterPlaceholder(radius, isLoading: true),
-            Center(
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: IOSTheme.systemBlue.withOpacity(0.8),
+
+        final visibleItems = items.take(6).toList();
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionHeader('Recently Viewed'),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 210,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: visibleItems.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 16),
+                  itemBuilder: (context, index) {
+                    return _buildRecentCard(visibleItems[index]);
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRecentCard(Map<String, dynamic> item) {
+    final title = item['title']?.toString() ?? 'Unknown';
+    final year = item['year']?.toString();
+    final type = _resolveTypeLabel(item);
+
+    return BentoCard(
+      width: 150,
+      height: 210,
+      padding: EdgeInsets.zero,
+      borderRadius: BorderRadius.circular(BentoTheme.radiusMedium),
+      onTap: () => _openDetails(item),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: _buildPosterImage(item['poster']?.toString(), radius: BentoTheme.radiusMedium),
+          ),
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(BentoTheme.radiusMedium),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.7),
+                  ],
                 ),
               ),
             ),
-          ],
-        );
-      },
-      errorBuilder: (context, error, stackTrace) => _buildPosterPlaceholder(radius),
+          ),
+          Positioned(
+            top: 10,
+            left: 10,
+            child: _buildTypeChip(type),
+          ),
+          Positioned(
+            left: 12,
+            right: 12,
+            bottom: 12,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: BentoTheme.subtitle.copyWith(color: Colors.white),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (year != null) ...[
+                  const SizedBox(height: 6),
+                  Text(year, style: BentoTheme.caption.copyWith(color: BentoTheme.textMuted)),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildPosterPlaceholder(double radius, {bool isLoading = false}) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white.withOpacity(0.08),
-            Colors.white.withOpacity(0.04),
+  Widget _buildAiTiles(Map<String, dynamic>? featured) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader('AI Studio'),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: BentoCard(
+                  gradient: BentoTheme.surfaceGradient,
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    if (widget.onMoodRequested != null) {
+                      widget.onMoodRequested!();
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const MoodDiscoveryScreen()),
+                      );
+                    }
+                  },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: BentoTheme.accent.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(CupertinoIcons.sparkles, color: BentoTheme.accent, size: 18),
+                      ),
+                      const SizedBox(height: 12),
+                      Text('Mood Discovery', style: BentoTheme.subtitle.copyWith(color: Colors.white)),
+                      const SizedBox(height: 6),
+                      Text('Match movies to your vibe.', style: BentoTheme.body),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: BentoCard(
+                  gradient: BentoTheme.surfaceGradient,
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    if (widget.onQuizRequested != null) {
+                      widget.onQuizRequested!(featured);
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => MovieQuizScreen(movie: featured)),
+                      );
+                    }
+                  },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: BentoTheme.accentSoft.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(CupertinoIcons.question_circle_fill, color: BentoTheme.accentSoft, size: 18),
+                      ),
+                      const SizedBox(height: 12),
+                      Text('Movie Quiz', style: BentoTheme.subtitle.copyWith(color: Colors.white)),
+                      const SizedBox(height: 6),
+                      Text('Test your trivia knowledge.', style: BentoTheme.body),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopPicksSection(
+    List<Map<String, dynamic>> topRated,
+    List<Map<String, dynamic>> trending,
+  ) {
+    final picks = [...topRated, ...trending];
+    if (picks.isEmpty) return const SizedBox.shrink();
+
+    final hero = picks.first;
+    final list = picks.skip(1).take(3).toList();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader('Top Picks for You', onViewAll: () => _openLibrary(type: 'movie')),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  children: list
+                      .map(
+                        (movie) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _buildMiniPickTile(movie),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(child: _buildHeroPickTile(hero)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniPickTile(Map<String, dynamic> movie) {
+    final title = movie['title']?.toString() ?? 'Unknown';
+
+    return BentoCard(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      onTap: () => _openDetails(movie),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: SizedBox(
+              width: 40,
+              height: 54,
+              child: _buildPosterImage(movie['poster']?.toString(), radius: 10),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              title,
+              style: BentoTheme.subtitle.copyWith(color: Colors.white),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const Icon(CupertinoIcons.chevron_right, color: BentoTheme.textMuted, size: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroPickTile(Map<String, dynamic> movie) {
+    final title = movie['title']?.toString() ?? 'Unknown';
+    final rating = movie['imdbRating']?.toString() ?? 'N/A';
+
+    return BentoCard(
+      padding: EdgeInsets.zero,
+      borderRadius: BorderRadius.circular(BentoTheme.radiusMedium),
+      onTap: () => _openDetails(movie),
+      child: AspectRatio(
+        aspectRatio: 3 / 4,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: _buildPosterImage(movie['poster']?.toString(), radius: BentoTheme.radiusMedium),
+            ),
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(BentoTheme.radiusMedium),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.75),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 12,
+              right: 12,
+              child: _buildRatingBadge(rating),
+            ),
+            Positioned(
+              left: 12,
+              right: 12,
+              bottom: 12,
+              child: Text(
+                title,
+                style: BentoTheme.subtitle.copyWith(color: Colors.white),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
       ),
-      child: Icon(
-        CupertinoIcons.film,
-        color: Colors.white.withOpacity(isLoading ? 0.4 : 0.6),
-        size: 28,
+    );
+  }
+
+  Widget _buildRatingBadge(String rating) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: BentoTheme.outline),
+      ),
+      child: Row(
+        children: [
+          const Icon(CupertinoIcons.star_fill, size: 12, color: BentoTheme.highlight),
+          const SizedBox(width: 4),
+          Text(rating, style: BentoTheme.caption.copyWith(color: Colors.white)),
+        ],
       ),
     );
   }
 
   Widget _buildBannerAd() {
-    return Center(
-      child: Container(
-        height: 60,
-        decoration: BoxDecoration(
-          border: Border.symmetric(horizontal: BorderSide(color: Colors.white.withOpacity(0.1))),
-          color: Colors.black.withOpacity(0.3),
-        ),
-        child: Builder(
-          builder: (context) {
-            return _adsService.showBannerAd();
-          },
-        ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+      child: BentoCard(
+        height: 72,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: _adsService.showBannerAd(),
       ),
     );
   }
+
+  String _formatGenres(String? raw) {
+    if (raw == null || raw.isEmpty) return 'Adventure';
+    final parts = raw.split(',').map((item) => item.trim()).where((item) => item.isNotEmpty).toList();
+    if (parts.isEmpty) return 'Adventure';
+    return parts.take(2).join(' • ');
+  }
+
+  String _resolveTypeLabel(Map<String, dynamic> item) {
+    final rawType = (item['type'] ?? item['Type'] ?? '').toString().toLowerCase();
+    if (rawType.contains('tv')) return 'TV';
+    if (rawType.contains('series')) return 'TV';
+    return 'Movie';
+  }
+
+  Widget _buildTypeChip(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: BentoTheme.outline),
+      ),
+      child: Text(
+        label,
+        style: BentoTheme.caption.copyWith(color: Colors.white),
+      ),
+    );
+  }
+
+  Map<String, dynamic>? _pickFeatured(
+    List<Map<String, dynamic>> topRated,
+    List<Map<String, dynamic>> trending,
+  ) {
+    if (topRated.isNotEmpty) return topRated.first;
+    if (trending.isNotEmpty) return trending.first;
+    return null;
+  }
+
+  void _openDetails(Map<String, dynamic> movie) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MovieDetailsScreen(movie: movie),
+      ),
+    );
+  }
+
+  void _openLibrary({required String type}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LibraryScreen(type: type),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, {VoidCallback? onViewAll}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(title, style: BentoTheme.title),
+        if (onViewAll != null)
+          GestureDetector(
+            onTap: onViewAll,
+            child: Text('View All', style: BentoTheme.body.copyWith(color: BentoTheme.accentSoft)),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildPosterImage(String? url, {required double radius}) {
+    final safeUrl = url ?? '';
+    if (safeUrl.isEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: BentoTheme.surfaceGradient,
+          ),
+          child: const Icon(CupertinoIcons.film, color: Colors.white54),
+        ),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: Image.network(
+        safeUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            decoration: const BoxDecoration(
+              gradient: BentoTheme.surfaceGradient,
+            ),
+            child: const Icon(CupertinoIcons.film, color: Colors.white54),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _CategoryItem {
+  final String label;
+  final IconData icon;
+
+  const _CategoryItem(this.label, this.icon);
 }

@@ -6,7 +6,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:moviemagicbox/main.dart';
-import 'package:moviemagicbox/utils/ios_theme.dart';
+import 'package:moviemagicbox/utils/bento_theme.dart';
+import 'package:moviemagicbox/widgets/bento_card.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'cinemas_screen.dart';
@@ -53,7 +54,7 @@ class _SettingsState extends State<Settings> with SingleTickerProviderStateMixin
     String htmlData = await rootBundle.loadString(htmlFilePath);
 
     if (!context.mounted) return;
-    
+
     final controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.disabled)
       ..setBackgroundColor(Colors.white)
@@ -64,7 +65,7 @@ class _SettingsState extends State<Settings> with SingleTickerProviderStateMixin
           encoding: Encoding.getByName('utf-8'),
         ),
       );
-    
+
     showCupertinoModalPopup(
       context: context,
       builder: (context) => Container(
@@ -91,7 +92,7 @@ class _SettingsState extends State<Settings> with SingleTickerProviderStateMixin
                   CupertinoButton(
                     padding: EdgeInsets.zero,
                     minSize: 0,
-                    child: const Text('Done', style: TextStyle(color: IOSTheme.systemBlue)),
+                    child: const Text('Done', style: TextStyle(color: BentoTheme.accent)),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -106,7 +107,6 @@ class _SettingsState extends State<Settings> with SingleTickerProviderStateMixin
     );
   }
 
-  // Show language selection dialog
   void showLanguageSelectionDialog(BuildContext context) {
     HapticFeedback.selectionClick();
     showCupertinoModalPopup(
@@ -117,15 +117,15 @@ class _SettingsState extends State<Settings> with SingleTickerProviderStateMixin
           CupertinoActionSheetAction(
             onPressed: () {
               MyApp.setLocale(context, const Locale('en', ''));
-          Navigator.pop(context);
-        },
+              Navigator.pop(context);
+            },
             child: const Text('English'),
           ),
         ],
         cancelButton: CupertinoActionSheetAction(
           onPressed: () => Navigator.pop(context),
           isDefaultAction: true,
-          child: const Text('Cancel', style: TextStyle(color: IOSTheme.systemBlue)),
+          child: const Text('Cancel', style: TextStyle(color: BentoTheme.accent)),
         ),
       ),
     );
@@ -134,245 +134,213 @@ class _SettingsState extends State<Settings> with SingleTickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: BentoTheme.background,
       body: Stack(
-            children: [
-          // Ambient Background
-              Container(
-            decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF0A0A0A),
-                  Colors.black,
-                  Color(0xFF0A0A0A),
-                ],
-                  ),
-            ),
-          ),
-
+        children: [
+          _buildBackground(),
           FadeTransition(
             opacity: _fadeAnimation,
             child: CustomScrollView(
               slivers: [
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.fromLTRB(24, MediaQuery.of(context).padding.top + 20, 24, 32),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                        Text(
-                          "Settings",
-                          style: IOSTheme.largeTitle.copyWith(
-                            fontSize: 42,
-                            color: Colors.white.withOpacity(0.9),
-                            letterSpacing: -1,
-                      ),
-                    ),
-                        const SizedBox(height: 32),
-                        
-                        // Profile Section (Glass)
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(24),
-                            color: Colors.white.withOpacity(0.05),
-                            border: Border.all(color: Colors.white.withOpacity(0.1)),
-                            ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(3),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: IOSTheme.systemBlue, width: 2),
+                    padding: EdgeInsets.fromLTRB(24, MediaQuery.of(context).padding.top + 20, 24, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Settings', style: BentoTheme.subtitle.copyWith(letterSpacing: 1.4)),
+                        const SizedBox(height: 6),
+                        Text('Your account & tools', style: BentoTheme.display),
+                        const SizedBox(height: 24),
+                        _buildProfileCard(),
+                        const SizedBox(height: 24),
+                        Text('PREFERENCES', style: BentoTheme.caption.copyWith(letterSpacing: 2)),
+                        const SizedBox(height: 12),
+                        _buildSettingsGroup([
+                          _SettingsTileData(
+                            icon: CupertinoIcons.bell_fill,
+                            iconColor: BentoTheme.accent,
+                            title: 'Movie Reminders',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const RemindersScreen(),
+                                ),
+                              );
+                            },
                           ),
-                          child: const CircleAvatar(
-                                  radius: 30,
-                            backgroundImage: AssetImage('lib/assets/images/profile-pic.png'),
+                          _SettingsTileData(
+                            icon: CupertinoIcons.ticket_fill,
+                            iconColor: BentoTheme.accent,
+                            title: 'Cinemas',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const CinemasScreen(),
+                                ),
+                              );
+                            },
                           ),
-                        ),
-                              const SizedBox(width: 20),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Guest User', style: IOSTheme.title2),
-                                  const SizedBox(height: 4),
-                                  Text('Movie Enthusiast', style: IOSTheme.subhead),
+                          _SettingsTileData(
+                            icon: CupertinoIcons.globe,
+                            iconColor: BentoTheme.accentSoft,
+                            title: 'Language',
+                            value: 'English',
+                            onTap: () => showLanguageSelectionDialog(context),
+                          ),
+                        ]),
+                        const SizedBox(height: 24),
+                        Text('SUPPORT', style: BentoTheme.caption.copyWith(letterSpacing: 2)),
+                        const SizedBox(height: 12),
+                        _buildSettingsGroup([
+                          _SettingsTileData(
+                            icon: CupertinoIcons.share,
+                            iconColor: Colors.green,
+                            title: 'Share App',
+                            onTap: () => shareApp(context),
+                          ),
+                          _SettingsTileData(
+                            icon: CupertinoIcons.hand_raised_fill,
+                            iconColor: Colors.orange,
+                            title: 'Privacy Policy',
+                            onTap: () => showPrivacyPolicy(context),
+                          ),
+                        ]),
+                        const SizedBox(height: 80),
                       ],
                     ),
-                  ],
-                ),
-              ),
-                        
-                        const SizedBox(height: 32),
-                        Text("PREFERENCES", style: IOSTheme.caption1.copyWith(letterSpacing: 2)),
-                        const SizedBox(height: 12),
-                        
-                        // Settings Group
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(24),
-                            color: Colors.white.withOpacity(0.05),
-                            border: Border.all(color: Colors.white.withOpacity(0.1)),
-                          ),
-                  child: Column(
-                    children: [
-                      _buildSettingsTile(
-                                icon: CupertinoIcons.bell_fill,
-                                iconColor: IOSTheme.systemBlue,
-                        title: 'Movie Reminders',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const RemindersScreen(),
-                            ),
-                          );
-                        },
-                                isFirst: true,
-                      ),
-                              _buildDivider(),
-                      _buildSettingsTile(
-                                icon: CupertinoIcons.ticket_fill,
-                                iconColor: IOSTheme.systemBlue,
-                        title: 'Cinemas',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const CinemasScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                              _buildDivider(),
-                      _buildSettingsTile(
-                                icon: CupertinoIcons.globe,
-                                iconColor: Colors.blue,
-                        title: 'Language',
-                                value: 'English',
-                        onTap: () => showLanguageSelectionDialog(context),
-                                isLast: true,
-                      ),
-                            ],
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 32),
-                        Text("SUPPORT", style: IOSTheme.caption1.copyWith(letterSpacing: 2)),
-                        const SizedBox(height: 12),
-                        
-                        // Support Group
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(24),
-                            color: Colors.white.withOpacity(0.05),
-                            border: Border.all(color: Colors.white.withOpacity(0.1)),
-                          ),
-                          child: Column(
-                            children: [
-                      _buildSettingsTile(
-                                icon: CupertinoIcons.share,
-                                iconColor: Colors.green,
-                        title: 'Share App',
-                        onTap: () => shareApp(context),
-                                isFirst: true,
-                      ),
-                              _buildDivider(),
-                      _buildSettingsTile(
-                                icon: CupertinoIcons.hand_raised_fill,
-                                iconColor: Colors.orange,
-                        title: 'Privacy Policy',
-                        onTap: () => showPrivacyPolicy(context),
-                                isLast: true,
-                              ),
-                            ],
-                          ),
-                      ),
-                        
-                        const SizedBox(height: 100),
-                    ],
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
         ],
       ),
     );
   }
 
-  Widget _buildDivider() {
-    return Divider(
-      height: 1,
-      indent: 68,
-      endIndent: 24,
-      color: Colors.white.withOpacity(0.1),
+  Widget _buildBackground() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: BentoTheme.backgroundGradient,
+      ),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+        child: Container(color: Colors.transparent),
+      ),
     );
   }
 
-  Widget _buildSettingsTile({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    String? value,
-    required VoidCallback onTap,
-    bool isFirst = false,
-    bool isLast = false,
-  }) {
+  Widget _buildProfileCard() {
+    return BentoCard(
+      padding: const EdgeInsets.all(16),
+      borderRadius: BorderRadius.circular(BentoTheme.radiusLarge),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: BentoTheme.accent, width: 2),
+            ),
+            child: const CircleAvatar(
+              radius: 28,
+              backgroundImage: AssetImage('lib/assets/images/profile-pic.png'),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Guest User', style: BentoTheme.title.copyWith(color: Colors.white)),
+              const SizedBox(height: 4),
+              Text('Movie Enthusiast', style: BentoTheme.caption),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettingsGroup(List<_SettingsTileData> tiles) {
+    return BentoCard(
+      padding: EdgeInsets.zero,
+      borderRadius: BorderRadius.circular(BentoTheme.radiusLarge),
+      child: Column(
+        children: tiles.asMap().entries.map((entry) {
+          final index = entry.key;
+          final tile = entry.value;
+          final isLast = index == tiles.length - 1;
+
+          return Column(
+            children: [
+              _buildSettingsTile(tile),
+              if (!isLast)
+                Divider(
+                  height: 1,
+                  indent: 68,
+                  endIndent: 24,
+                  color: BentoTheme.outline,
+                ),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildSettingsTile(_SettingsTileData tile) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
           HapticFeedback.selectionClick();
-          onTap();
+          tile.onTap();
         },
-        borderRadius: BorderRadius.vertical(
-          top: isFirst ? const Radius.circular(24) : Radius.zero,
-          bottom: isLast ? const Radius.circular(24) : Radius.zero,
-        ),
-          child: Padding(
+        borderRadius: BorderRadius.circular(BentoTheme.radiusLarge),
+        child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.2),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: tile.iconColor.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    icon,
-                  color: iconColor,
-                  size: 20,
-                  ),
                 ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Text(
-                  title,
-                  style: IOSTheme.body.copyWith(fontWeight: FontWeight.w500),
-                  ),
+                child: Icon(tile.icon, color: tile.iconColor, size: 20),
               ),
-              if (value != null) ...[
-                Text(
-                  value,
-                  style: IOSTheme.body.copyWith(color: IOSTheme.secondaryLabel),
-                ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(tile.title, style: BentoTheme.body.copyWith(color: Colors.white)),
+              ),
+              if (tile.value != null) ...[
+                Text(tile.value!, style: BentoTheme.body.copyWith(color: BentoTheme.textMuted)),
                 const SizedBox(width: 8),
               ],
-                const Icon(
-                CupertinoIcons.chevron_right,
-                color: IOSTheme.tertiaryLabel,
-                size: 18,
-                ),
-              ],
+              const Icon(CupertinoIcons.chevron_right, color: BentoTheme.textMuted, size: 18),
+            ],
           ),
         ),
       ),
     );
   }
+}
+
+class _SettingsTileData {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String? value;
+  final VoidCallback onTap;
+
+  _SettingsTileData({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    this.value,
+    required this.onTap,
+  });
 }

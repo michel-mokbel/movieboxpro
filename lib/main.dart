@@ -16,7 +16,7 @@ import 'package:app_set_id/app_set_id.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:moviemagicbox/services/ads_service.dart';
-import 'package:moviemagicbox/utils/ios_theme.dart';
+import 'package:moviemagicbox/utils/bento_theme.dart';
 
 // ============================================================================
 // GLOBAL STATE
@@ -655,7 +655,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
         child: CupertinoButton(
           padding: const EdgeInsets.all(8),
           minSize: 0,
-          color: Colors.black.withOpacity(0.6),
+          color: BentoTheme.surfaceAlt.withOpacity(0.9),
           borderRadius: BorderRadius.circular(20),
           child: const Icon(
             CupertinoIcons.xmark,
@@ -696,7 +696,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
         barrierDismissible: false,
         builder: (BuildContext context) {
           return const Center(
-            child: CircularProgressIndicator(color: Color(0xFF0A84FF)),
+            child: CircularProgressIndicator(color: BentoTheme.accent),
           );
         },
       );
@@ -777,7 +777,7 @@ class _SplashWithAdScreenState extends State<SplashWithAdScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: BentoTheme.background,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -788,14 +788,12 @@ class _SplashWithAdScreenState extends State<SplashWithAdScreen> {
               height: 200,
             ),
             const SizedBox(height: 20),
-            const CircularProgressIndicator(
-              color: Color(0xFF0A84FF),
-            ),
+            const CircularProgressIndicator(color: BentoTheme.accent),
             const SizedBox(height: 20),
             const Text(
               'Loading...',
               style: TextStyle(
-                color: Colors.white,
+                color: BentoTheme.textPrimary,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
@@ -843,7 +841,27 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Movie Box Pro +',
-      theme: IOSTheme.themeData,
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: BentoTheme.background,
+        primaryColor: BentoTheme.accent,
+        colorScheme: const ColorScheme.dark(
+          primary: BentoTheme.accent,
+          secondary: BentoTheme.accentSoft,
+          surface: BentoTheme.surface,
+          background: BentoTheme.background,
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+            TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          },
+        ),
+      ),
       locale: _locale ?? ui.window.locale,
       supportedLocales: const [Locale('en', '')],
       localizationsDelegates: const [

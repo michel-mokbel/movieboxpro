@@ -8,7 +8,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:moviemagicbox/utils/ios_theme.dart';
+import 'package:moviemagicbox/utils/bento_theme.dart';
+import 'package:moviemagicbox/widgets/bento_card.dart';
 import '../services/ads_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -171,39 +172,10 @@ class _CinemasScreenState extends State<CinemasScreen> {
       _mapController = controller;
       await controller.setMapStyle('''
         [
-          {
-            "elementType": "geometry",
-            "stylers": [
-              {
-                "color": "#212121"
-              }
-            ]
-          },
-          {
-            "elementType": "labels.text.fill",
-            "stylers": [
-              {
-                "color": "#757575"
-              }
-            ]
-          },
-          {
-            "elementType": "labels.text.stroke",
-            "stylers": [
-              {
-                "color": "#212121"
-              }
-            ]
-          },
-          {
-            "featureType": "water",
-            "elementType": "geometry",
-            "stylers": [
-              {
-                "color": "#000000"
-              }
-            ]
-          }
+          {"elementType":"geometry","stylers":[{"color":"#1B1F2B"}]},
+          {"elementType":"labels.text.fill","stylers":[{"color":"#9AA4B2"}]},
+          {"elementType":"labels.text.stroke","stylers":[{"color":"#1B1F2B"}]},
+          {"featureType":"water","elementType":"geometry","stylers":[{"color":"#0B0F17"}]}
         ]
       ''');
       setState(() {
@@ -220,7 +192,7 @@ class _CinemasScreenState extends State<CinemasScreen> {
   Future<void> _openInGoogleMaps(double lat, double lng, String name) async {
     HapticFeedback.selectionClick();
     await _adsService.showInterstitialAd();
-    
+
     final Uri url = Uri.parse(
       'https://www.google.com/maps/search/?api=1&query=$lat,$lng&query_place_id=${Uri.encodeComponent(name)}',
     );
@@ -237,88 +209,73 @@ class _CinemasScreenState extends State<CinemasScreen> {
     return bannerCounter % 2 == 0;
   }
 
-  Widget _buildGlassButton({required IconData icon, required VoidCallback onPressed}) {
-    return Container(
-      width: 50,
-      height: 50,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white.withOpacity(0.1),
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
-            ),
-      child: ClipOval(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: IconButton(
-            icon: Icon(icon, color: Colors.white, size: 24),
-            onPressed: onPressed,
-            ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: BentoTheme.background,
       body: Stack(
         children: [
-          // Full Screen Map
           if (_currentPosition != null)
             GoogleMap(
-        initialCameraPosition: CameraPosition(
-          target: LatLng(
-            _currentPosition!.latitude,
-            _currentPosition!.longitude,
-          ),
-          zoom: 13,
-        ),
-        markers: _markers,
-        onMapCreated: _onMapCreated,
-        myLocationEnabled: _mapInitialized,
+              initialCameraPosition: CameraPosition(
+                target: LatLng(
+                  _currentPosition!.latitude,
+                  _currentPosition!.longitude,
+                ),
+                zoom: 13,
+              ),
+              markers: _markers,
+              onMapCreated: _onMapCreated,
+              myLocationEnabled: _mapInitialized,
               myLocationButtonEnabled: false,
-        zoomControlsEnabled: false,
-        mapToolbarEnabled: false,
-              padding: const EdgeInsets.only(bottom: 300),
+              zoomControlsEnabled: false,
+              mapToolbarEnabled: false,
+              padding: const EdgeInsets.only(bottom: 320),
             )
           else
             Container(
-              color: Colors.black,
+              color: BentoTheme.background,
               child: Center(
                 child: _isLoading
                     ? const CupertinoActivityIndicator(color: Colors.white, radius: 15)
-                    : Text(_error ?? 'Location unavailable', style: IOSTheme.body),
+                    : Text(_error ?? 'Location unavailable', style: BentoTheme.body),
               ),
             ),
-
-          // Top Gradient
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            height: 150,
+            height: 140,
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.8),
+                    BentoTheme.background.withOpacity(0.8),
                     Colors.transparent,
                   ],
                 ),
               ),
             ),
           ),
-
-          // Floating Header
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 20,
+            child: BentoCard(
+              padding: const EdgeInsets.all(8),
+              borderRadius: BorderRadius.circular(14),
+              onTap: () => Navigator.pop(context),
+              child: const Icon(CupertinoIcons.arrow_left, color: Colors.white, size: 18),
+            ),
+          ),
           Positioned(
             top: MediaQuery.of(context).padding.top + 10,
             right: 20,
-            child: _buildGlassButton(
-              icon: CupertinoIcons.location_fill,
-              onPressed: () async {
+            child: BentoCard(
+              padding: const EdgeInsets.all(8),
+              borderRadius: BorderRadius.circular(14),
+              onTap: () async {
                 HapticFeedback.mediumImpact();
                 if (_mapController != null && _currentPosition != null) {
                   _mapController!.animateCamera(
@@ -330,71 +287,61 @@ class _CinemasScreenState extends State<CinemasScreen> {
                         ),
                         zoom: 15,
                       ),
-      ),
-    );
-  }
+                    ),
+                  );
+                }
               },
+              child: const Icon(CupertinoIcons.location_fill, color: Colors.white, size: 18),
             ),
           ),
-
-          // Bottom Sheet List
           if (!_isLoading && _error == null)
             DraggableScrollableSheet(
-              initialChildSize: 0.4,
+              initialChildSize: 0.42,
               minChildSize: 0.2,
               maxChildSize: 0.9,
               builder: (context, scrollController) {
                 return Container(
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.85),
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-                    border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
+                    color: BentoTheme.background.withOpacity(0.92),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                    border: Border(top: BorderSide(color: BentoTheme.outline)),
                   ),
                   child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                       child: Column(
                         children: [
-                          // Handle
-                          Center(
-                            child: Container(
-                              margin: const EdgeInsets.only(top: 12, bottom: 20),
-                              width: 40,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.3),
-                                borderRadius: BorderRadius.circular(2),
-        ),
+                          const SizedBox(height: 12),
+                          Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: BentoTheme.textMuted,
+                              borderRadius: BorderRadius.circular(2),
                             ),
                           ),
-                          
-                          // Title
+                          const SizedBox(height: 16),
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
                             child: Row(
-        children: [
-                                Text('Nearby Cinemas', style: IOSTheme.title2),
+                              children: [
+                                Text('Nearby Cinemas', style: BentoTheme.title.copyWith(color: Colors.white)),
                                 const Spacer(),
-          Container(
+                                BentoCard(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: IOSTheme.systemBlue.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: IOSTheme.systemBlue.withOpacity(0.5)),
-                                  ),
+                                  borderRadius: BorderRadius.circular(20),
+                                  color: BentoTheme.accent.withOpacity(0.15),
+                                  border: Border.all(color: BentoTheme.accent.withOpacity(0.4)),
                                   child: Text(
                                     '${_nearbyCinemas.length} found',
-                                    style: IOSTheme.caption1.copyWith(color: IOSTheme.systemBlue, fontWeight: FontWeight.bold),
+                                    style: BentoTheme.caption.copyWith(color: BentoTheme.accent),
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          
-                          const SizedBox(height: 20),
-
-                          // List
+                          const SizedBox(height: 16),
                           Expanded(
                             child: ListView.builder(
                               controller: scrollController,
@@ -403,153 +350,145 @@ class _CinemasScreenState extends State<CinemasScreen> {
                               itemBuilder: (context, index) {
                                 if (index == 0) {
                                   return Container(
-            height: 60,
+                                    height: 60,
                                     margin: const EdgeInsets.only(bottom: 20),
-            child: FutureBuilder<bool>(
-              future: _shouldShowBanner(),
-              builder: (context, snapshot) {
-                if (snapshot.hasData && snapshot.data == true) {
-                  return _adsService.showBannerAd();
+                                    child: FutureBuilder<bool>(
+                                      future: _shouldShowBanner(),
+                                      builder: (context, snapshot) {
+                                        if (snapshot.hasData && snapshot.data == true) {
+                                          return _adsService.showBannerAd();
                                         }
                                         return const SizedBox.shrink();
                                       },
                                     ),
                                   );
                                 }
-                                
+
                                 final cinema = _nearbyCinemas[index - 1];
-                                          final location = cinema['geometry']['location'];
-                                          
-                                return Container(
-                                  margin: const EdgeInsets.only(bottom: 16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.05),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: Colors.white.withOpacity(0.1)),
-                                            ),
-                                  child: Material(
-                                    color: Colors.transparent,
-                                    child: InkWell(
-                                      onTap: () async {
-                                        final lat = location['lat'];
-                                        final lng = location['lng'];
-                                        await _openInGoogleMaps(lat, lng, cinema['name']);
-                                      },
-                                      borderRadius: BorderRadius.circular(20),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(16),
-                                        child: Row(
-                                          children: [
-                                            ClipRRect(
-                                              borderRadius: BorderRadius.circular(16),
-                                              child: cinema['photos'] != null && cinema['photos'].isNotEmpty
-                                                  ? CachedNetworkImage(
-                                                      imageUrl: 'https://maps.googleapis.com/maps/api/place/photo'
-                                                          '?maxwidth=100'
-                                                          '&photo_reference=${cinema['photos'][0]['photo_reference']}'
-                                                          '&key=$_apiKey',
-                                                      height: 60,
-                                                      width: 60,
-                                                      fit: BoxFit.cover,
-                                                      placeholder: (context, url) => Container(
-                                                        color: Colors.white.withOpacity(0.1),
-                                                      ),
-                                                      errorWidget: (context, url, error) => Container(
-                                                        color: Colors.white.withOpacity(0.1),
-                                                        child: const Icon(CupertinoIcons.film, color: Colors.white),
-                                                      ),
-                                                    )
-                                                  : Container(
-                                                      height: 60,
-                                                      width: 60,
-                                                      color: Colors.white.withOpacity(0.1),
-                                                      child: const Icon(CupertinoIcons.film, color: Colors.white),
-                                                    ),
-                                            ),
-                                            const SizedBox(width: 16),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    cinema['name'],
-                                                    style: IOSTheme.headline,
-                                                    maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
+                                final location = cinema['geometry']['location'];
+
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: BentoCard(
+                                    padding: const EdgeInsets.all(14),
+                                    borderRadius: BorderRadius.circular(BentoTheme.radiusLarge),
+                                    onTap: () async {
+                                      final lat = location['lat'];
+                                      final lng = location['lng'];
+                                      await _openInGoogleMaps(lat, lng, cinema['name']);
+                                    },
+                                    child: Row(
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(14),
+                                          child: cinema['photos'] != null && cinema['photos'].isNotEmpty
+                                              ? CachedNetworkImage(
+                                                  imageUrl: 'https://maps.googleapis.com/maps/api/place/photo'
+                                                      '?maxwidth=100'
+                                                      '&photo_reference=${cinema['photos'][0]['photo_reference']}'
+                                                      '&key=$_apiKey',
+                                                  height: 60,
+                                                  width: 60,
+                                                  fit: BoxFit.cover,
+                                                  placeholder: (context, url) => Container(
+                                                    color: BentoTheme.surfaceAlt,
                                                   ),
-                                                  const SizedBox(height: 4),
-                                                  Text(
-                                                    cinema['vicinity'] ?? 'Unknown location',
-                                                    style: IOSTheme.caption1.copyWith(color: Colors.white.withOpacity(0.6)),
-                                                    maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
+                                                  errorWidget: (context, url, error) => Container(
+                                                    color: BentoTheme.surfaceAlt,
+                                                    child: const Icon(CupertinoIcons.film, color: Colors.white),
+                                                  ),
+                                                )
+                                              : Container(
+                                                  height: 60,
+                                                  width: 60,
+                                                  color: BentoTheme.surfaceAlt,
+                                                  child: const Icon(CupertinoIcons.film, color: Colors.white),
+                                                ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                cinema['name'],
+                                                style: BentoTheme.title.copyWith(color: Colors.white),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                cinema['vicinity'] ?? 'Unknown location',
+                                                style: BentoTheme.caption.copyWith(color: BentoTheme.textSecondary),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Row(
+                                                children: [
+                                                  if (cinema['rating'] != null) ...[
+                                                    const Icon(CupertinoIcons.star_fill, size: 14, color: BentoTheme.highlight),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      cinema['rating'].toString(),
+                                                      style: BentoTheme.caption.copyWith(color: Colors.white),
                                                     ),
-                                                  const SizedBox(height: 8),
-                                                  Row(
-                                                    children: [
-                                                      if (cinema['rating'] != null) ...[
-                                                        const Icon(CupertinoIcons.star_fill, size: 14, color: Colors.amber),
-                                                        const SizedBox(width: 4),
-                                                        Text(cinema['rating'].toString(), style: IOSTheme.caption1.copyWith(fontWeight: FontWeight.bold)),
-                                                        const SizedBox(width: 12),
-                                                      ],
-                                                      Container(
-                                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                                        decoration: BoxDecoration(
-                                                          color: (cinema['opening_hours'] != null && cinema['opening_hours']['open_now']) 
-                                                              ? Colors.green.withOpacity(0.2) 
-                                                              : const Color(0xFF0A84FF).withOpacity(0.2),
-                                                          borderRadius: BorderRadius.circular(4),
+                                                    const SizedBox(width: 12),
+                                                  ],
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: (cinema['opening_hours'] != null && cinema['opening_hours']['open_now'])
+                                                          ? Colors.green.withOpacity(0.2)
+                                                          : BentoTheme.accent.withOpacity(0.2),
+                                                      borderRadius: BorderRadius.circular(6),
+                                                      border: Border.all(color: BentoTheme.outline),
+                                                    ),
+                                                    child: Text(
+                                                      (cinema['opening_hours'] != null && cinema['opening_hours']['open_now'])
+                                                          ? 'OPEN'
+                                                          : 'CLOSED',
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: (cinema['opening_hours'] != null && cinema['opening_hours']['open_now'])
+                                                            ? Colors.green
+                                                            : BentoTheme.accent,
                                                       ),
-                                                        child: Text(
-                                                          (cinema['opening_hours'] != null && cinema['opening_hours']['open_now']) ? 'OPEN' : 'CLOSED',
-                                                          style: TextStyle(
-                                                            fontSize: 10,
-                                                            fontWeight: FontWeight.bold,
-                                                            color: (cinema['opening_hours'] != null && cinema['opening_hours']['open_now']) 
-                                                                ? Colors.green 
-                                                                : const Color(0xFF0A84FF),
-                                                          ),
-                                                          ),
-                                                        ),
-                                                    ],
+                                                    ),
                                                   ),
                                                 ],
                                               ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Container(
-                                              width: 40,
-                                              height: 40,
-                                              decoration: BoxDecoration(
-                                                color: IOSTheme.systemBlue.withOpacity(0.1),
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: IconButton(
-                                                icon: const Icon(CupertinoIcons.paperplane_fill, color: IOSTheme.systemBlue, size: 20),
-                                                onPressed: () => _launchMaps(
-                                                  location['lat'],
-                                                  location['lng'],
-                                                  cinema['place_id'],
-                                                ),
-                                              ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
-                                      ),
+                                        const SizedBox(width: 8),
+                                        BentoCard(
+                                          padding: const EdgeInsets.all(8),
+                                          borderRadius: BorderRadius.circular(14),
+                                          color: BentoTheme.accent.withOpacity(0.15),
+                                          border: Border.all(color: BentoTheme.accent.withOpacity(0.4)),
+                                          onTap: () => _launchMaps(
+                                            location['lat'],
+                                            location['lng'],
+                                            cinema['place_id'],
+                                          ),
+                                          child: const Icon(CupertinoIcons.paperplane_fill, color: BentoTheme.accent, size: 18),
+                                        ),
+                                      ],
                                     ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                              ),
-                            ],
+                                  ),
+                                );
+                              },
+                            ),
                           ),
+                        ],
+                      ),
                     ),
                   ),
                 );
               },
-          ),
+            ),
         ],
       ),
     );

@@ -1,8 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:moviemagicbox/screens/info_screen.dart';
-import 'package:moviemagicbox/utils/ios_theme.dart';
+import 'package:moviemagicbox/utils/bento_theme.dart';
+import 'package:moviemagicbox/widgets/bento_card.dart';
 import '../services/movie_service.dart';
 import '../services/ads_service.dart';
 
@@ -38,124 +40,58 @@ class _LibraryScreenState extends State<LibraryScreen> with SingleTickerProvider
     super.dispose();
   }
 
+  void _selectType(String type) {
+    if (type == selectedType) return;
+    HapticFeedback.selectionClick();
+    setState(() {
+      selectedType = type;
+      libraryItems = MovieService.fetchAllByType(selectedType);
+    });
+    _animationController.forward(from: 0.0);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: BentoTheme.background,
       body: Stack(
         children: [
-          // Ambient Background
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF0A0A20), // Deep Blue/Black for library
-                  Colors.black,
-                  Color(0xFF0D0D0D),
-                ],
-              ),
-            ),
-          ),
-
+          _buildBackground(),
           CustomScrollView(
             slivers: [
-              // Large Header
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(24, MediaQuery.of(context).padding.top + 20, 24, 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(CupertinoIcons.arrow_left, color: Colors.white),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        selectedType == "movie" ? "Movies" : "TV Shows",
-                        style: IOSTheme.largeTitle.copyWith(
-                          fontSize: 42,
-                          color: Colors.white.withOpacity(0.9),
-                          letterSpacing: -1,
-                        ),
-                      ),
-                      Text(
-                        "Library",
-                        style: IOSTheme.title1.copyWith(
-                          color: IOSTheme.systemBlue,
-                          fontWeight: FontWeight.w300,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Ad
-              SliverToBoxAdapter(
-                child: Center(
-                  child: Container(
-                    height: 60,
-                    margin: const EdgeInsets.only(bottom: 24),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.3),
-                      border: Border.symmetric(horizontal: BorderSide(color: Colors.white.withOpacity(0.1))),
-                    ),
-                    child: _adsService.showBannerAd(),
-                  ),
-                ),
-              ),
-
-              // Content
+              SliverToBoxAdapter(child: _buildHeader()),
+              SliverToBoxAdapter(child: _buildTypeSwitch()),
+              SliverToBoxAdapter(child: _buildAdTile()),
               FutureBuilder<List<Map<String, dynamic>>>(
                 future: libraryItems,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const SliverFillRemaining(
-                      child: Center(child: CupertinoActivityIndicator(color: Colors.white, radius: 15)),
-                    );
-                  } else if (snapshot.hasError) {
-                    return SliverFillRemaining(
                       child: Center(
-                        child: Text("Error loading library items", style: IOSTheme.body),
+                        child: CupertinoActivityIndicator(color: Colors.white, radius: 14),
                       ),
                     );
+                  } else if (snapshot.hasError) {
+                    return SliverFillRemaining(child: _buildMessage('Error loading library items'));
                   }
 
                   final items = snapshot.data ?? [];
                   if (items.isEmpty) {
-                    return SliverFillRemaining(
-                      child: Center(
-                        child: Text(
-                          "No items available",
-                          style: IOSTheme.title3.copyWith(color: Colors.white54),
-                        ),
-                      ),
-                    );
+                    return SliverFillRemaining(child: _buildMessage('No titles available yet'));
                   }
 
                   return SliverPadding(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
                     sliver: SliverGrid(
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 3,
                         mainAxisSpacing: 16,
                         crossAxisSpacing: 16,
-                        childAspectRatio: 0.65,
+                        childAspectRatio: 0.62,
                       ),
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
                           final movie = items[index];
-                          // Staggered animation
                           final animation = CurvedAnimation(
                             parent: _animationController,
                             curve: Interval(
@@ -176,7 +112,7 @@ class _LibraryScreenState extends State<LibraryScreen> with SingleTickerProvider
                                 ),
                               );
                             },
-                            child: _buildMovieCard(movie, context),
+                            child: _buildMovieCard(movie),
                           );
                         },
                         childCount: items.length,
@@ -185,8 +121,7 @@ class _LibraryScreenState extends State<LibraryScreen> with SingleTickerProvider
                   );
                 },
               ),
-              
-              const SliverToBoxAdapter(child: SizedBox(height: 40)),
+              const SliverToBoxAdapter(child: SizedBox(height: 60)),
             ],
           ),
         ],
@@ -194,10 +129,129 @@ class _LibraryScreenState extends State<LibraryScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildMovieCard(Map<String, dynamic> movie, BuildContext context) {
-    String truncatedTitle = _truncateTitle(movie["title"] ?? "Unknown Title");
+  Widget _buildBackground() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: BentoTheme.backgroundGradient,
+      ),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+        child: Container(color: Colors.transparent),
+      ),
+    );
+  }
 
+  Widget _buildHeader() {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 16, 20, 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (Navigator.of(context).canPop())
+            _buildBackButton(),
+          if (Navigator.of(context).canPop())
+            const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Library', style: BentoTheme.subtitle.copyWith(letterSpacing: 1.4)),
+                const SizedBox(height: 6),
+                Text(
+                  selectedType == 'movie' ? 'All Movies' : 'TV Collections',
+                  style: BentoTheme.display,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBackButton() {
+    return BentoCard(
+      padding: const EdgeInsets.all(10),
+      borderRadius: BorderRadius.circular(16),
+      onTap: () => Navigator.pop(context),
+      child: const Icon(CupertinoIcons.arrow_left, color: Colors.white, size: 18),
+    );
+  }
+
+  Widget _buildTypeSwitch() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildTypeChip('movie', 'Movies', CupertinoIcons.film),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildTypeChip('tv_show', 'TV Shows', CupertinoIcons.tv),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTypeChip(String type, String label, IconData icon) {
+    final isSelected = selectedType == type;
     return GestureDetector(
+      onTap: () => _selectType(type),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          color: isSelected ? BentoTheme.accent.withOpacity(0.25) : BentoTheme.surfaceAlt.withOpacity(0.85),
+          border: Border.all(color: isSelected ? BentoTheme.accent : BentoTheme.outline),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: isSelected ? BentoTheme.accent : BentoTheme.textSecondary),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: BentoTheme.subtitle.copyWith(
+                color: isSelected ? BentoTheme.textPrimary : BentoTheme.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdTile() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      child: BentoCard(
+        height: 68,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: _adsService.showBannerAd(),
+      ),
+    );
+  }
+
+  Widget _buildMessage(String text) {
+    return Center(
+      child: BentoCard(
+        padding: const EdgeInsets.all(24),
+        borderRadius: BorderRadius.circular(BentoTheme.radiusLarge),
+        child: Text(text, style: BentoTheme.body.copyWith(color: Colors.white70)),
+      ),
+    );
+  }
+
+  Widget _buildMovieCard(Map<String, dynamic> movie) {
+    final title = movie['title']?.toString() ?? 'Unknown';
+    final rating = movie['imdbRating']?.toString() ?? 'N/A';
+
+    return BentoCard(
+      padding: EdgeInsets.zero,
+      borderRadius: BorderRadius.circular(BentoTheme.radiusMedium),
       onTap: () {
         Navigator.push(
           context,
@@ -206,74 +260,89 @@ class _LibraryScreenState extends State<LibraryScreen> with SingleTickerProvider
           ),
         );
       },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Stack(
         children: [
-          Expanded(
+          Positioned.fill(child: _buildPosterImage(movie['poster']?.toString())),
+          Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Image.network(
-                      movie["poster"] ?? "",
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        color: Colors.white.withOpacity(0.1),
-                        child: const Icon(CupertinoIcons.film, color: Colors.white54),
-                      ),
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black.withOpacity(0.2),
-                            Colors.black.withOpacity(0.6),
-                          ],
-                          stops: const [0.6, 0.8, 1.0],
-                        ),
-                      ),
-                    ),
+                borderRadius: BorderRadius.circular(BentoTheme.radiusMedium),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.85),
                   ],
+                  stops: const [0.5, 1.0],
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            truncatedTitle,
-            style: IOSTheme.caption1.copyWith(
-              color: Colors.white.withOpacity(0.9),
-              fontWeight: FontWeight.w600,
+          Positioned(
+            top: 8,
+            right: 8,
+            child: _buildRatingBadge(rating),
+          ),
+          Positioned(
+            left: 8,
+            right: 8,
+            bottom: 10,
+            child: Text(
+              title,
+              style: BentoTheme.caption.copyWith(color: Colors.white),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
     );
   }
 
-  String _truncateTitle(String title) {
-    List<String> words = title.split(' ');
-    if (words.length > 2) {
-      return '${words[0]} ${words[1]}...';
+  Widget _buildRatingBadge(String rating) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: BentoTheme.outline),
+      ),
+      child: Row(
+        children: [
+          const Icon(CupertinoIcons.star_fill, size: 10, color: BentoTheme.highlight),
+          const SizedBox(width: 4),
+          Text(rating, style: BentoTheme.caption.copyWith(color: Colors.white)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPosterImage(String? url) {
+    final safeUrl = url ?? '';
+    if (safeUrl.isEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(BentoTheme.radiusMedium),
+        child: Container(
+          decoration: const BoxDecoration(gradient: BentoTheme.surfaceGradient),
+          child: const Icon(CupertinoIcons.film, color: Colors.white54),
+        ),
+      );
     }
-    return title;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(BentoTheme.radiusMedium),
+      child: Image.network(
+        safeUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            decoration: const BoxDecoration(gradient: BentoTheme.surfaceGradient),
+            child: const Icon(CupertinoIcons.film, color: Colors.white54),
+          );
+        },
+      ),
+    );
   }
 }

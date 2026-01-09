@@ -7,7 +7,7 @@ import 'package:moviemagicbox/screens/settings_screen.dart';
 import 'package:moviemagicbox/screens/favorites_screen.dart';
 import 'package:moviemagicbox/screens/ai_hub_screen.dart';
 import 'package:flutter_html/flutter_html.dart';
-import 'package:moviemagicbox/utils/ios_theme.dart';
+import 'package:moviemagicbox/utils/bento_theme.dart';
 import '../services/api_service.dart';
 import '../services/ads_service.dart';
 import 'dashboard_screen.dart';
@@ -25,6 +25,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   late AnimationController _animationController;
   late final List<Widget> screens;
   final GlobalKey<AIHubScreenState> _aiHubKey = GlobalKey<AIHubScreenState>();
+  final GlobalKey<SearchScreenState> _searchKey = GlobalKey<SearchScreenState>();
   
   final TextEditingController _messageController = TextEditingController();
   final List<Map<String, String>> _messages = [];
@@ -43,8 +44,9 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       DashboardScreen(
         onMoodRequested: _openMoodFromDashboard,
         onQuizRequested: _openQuizFromDashboard,
+        onCategorySelected: _openSearchWithCategory,
       ),
-      const SearchScreen(),
+      SearchScreen(key: _searchKey),
       AIHubScreen(key: _aiHubKey),
       const FavoritesScreen(),
       const Settings(),
@@ -78,6 +80,13 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     setState(() {
       currentIndex = newIndex;
     });
+    if (newIndex == 1) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _searchKey.currentState?.refreshSuggestions();
+        }
+      });
+    }
     if (newIndex == 0) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -101,6 +110,20 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _aiHubKey.currentState?.openQuiz(movie: movie);
+      }
+    });
+  }
+
+  Future<void> _openSearchWithCategory(String category) async {
+    const searchIndex = 1;
+    if (currentIndex == searchIndex) {
+      _searchKey.currentState?.applyCategory(category);
+      return;
+    }
+    await _maybeShowInterstitial(searchIndex);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _searchKey.currentState?.applyCategory(category);
       }
     });
   }
@@ -159,7 +182,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                   end: Alignment.bottomRight,
                   colors: [
                     Colors.white.withOpacity(0.08),
-                    IOSTheme.systemBlue.withOpacity(0.15),
+                    BentoTheme.accent.withOpacity(0.15),
                     Colors.white.withOpacity(0.04),
                   ],
                 ),
@@ -174,7 +197,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                 ],
               ),
               child: DefaultTextStyle(
-                style: IOSTheme.body.copyWith(
+                style: BentoTheme.body.copyWith(
                   color: Colors.white70,
                   decoration: TextDecoration.none,
                 ),
@@ -189,7 +212,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                         children: [
                           Text(
                             'New AI Features',
-                            style: IOSTheme.title2.copyWith(
+                            style: BentoTheme.title.copyWith(
                               color: Colors.white,
                               decoration: TextDecoration.none,
                             ),
@@ -208,7 +231,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                       const SizedBox(height: 6),
                       Text(
                         'Discover what is new in Movie Magic Box.',
-                        style: IOSTheme.body.copyWith(
+                        style: BentoTheme.body.copyWith(
                           color: Colors.white70,
                           decoration: TextDecoration.none,
                         ),
@@ -227,7 +250,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                       ),
                       const SizedBox(height: 20),
                       CupertinoButton(
-                        color: IOSTheme.systemBlue,
+                        color: BentoTheme.accent,
                         borderRadius: BorderRadius.circular(24),
                         onPressed: () {
                           Navigator.pop(context);
@@ -239,7 +262,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                         },
                         child: Text(
                           'Open Mood Discovery',
-                          style: IOSTheme.headline.copyWith(
+                          style: BentoTheme.subtitle.copyWith(
                             color: Colors.white,
                             decoration: TextDecoration.none,
                           ),
@@ -259,7 +282,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                         },
                         child: Text(
                           'Take a Movie Quiz',
-                          style: IOSTheme.headline.copyWith(
+                          style: BentoTheme.subtitle.copyWith(
                             color: Colors.white,
                             decoration: TextDecoration.none,
                           ),
@@ -290,10 +313,10 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: IOSTheme.systemBlue.withOpacity(0.2),
+              color: BentoTheme.accent.withOpacity(0.2),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: IOSTheme.systemBlue),
+            child: Icon(icon, color: BentoTheme.accent),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -302,7 +325,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
               children: [
                 Text(
                   title,
-                  style: IOSTheme.headline.copyWith(
+                  style: BentoTheme.subtitle.copyWith(
                     color: Colors.white,
                     decoration: TextDecoration.none,
                   ),
@@ -310,7 +333,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: IOSTheme.subhead.copyWith(
+                  style: BentoTheme.body.copyWith(
                     color: Colors.white70,
                     decoration: TextDecoration.none,
                   ),
@@ -403,7 +426,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Container(
               decoration: BoxDecoration(
-                color: IOSTheme.secondarySystemBackground.withOpacity(0.8),
+                color: BentoTheme.surface.withOpacity(0.8),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.white.withOpacity(0.1), width: 0.5),
                 boxShadow: [
@@ -427,12 +450,12 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                       children: [
                         const Text(
                           'Movie Assistant',
-                          style: IOSTheme.headline,
+                          style: BentoTheme.subtitle,
                         ),
                         CupertinoButton(
                           padding: EdgeInsets.zero,
                           minSize: 0,
-                          child: const Icon(CupertinoIcons.xmark_circle_fill, color: IOSTheme.secondaryLabel),
+                          child: const Icon(CupertinoIcons.xmark_circle_fill, color: BentoTheme.textSecondary),
                           onPressed: _toggleChat,
                         ),
                       ],
@@ -448,11 +471,11 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(CupertinoIcons.chat_bubble_2_fill, size: 48, color: IOSTheme.systemBlue),
+                                  const Icon(CupertinoIcons.chat_bubble_2_fill, size: 48, color: BentoTheme.accent),
                                   const SizedBox(height: 16),
                                   Text(
                                     'How can I help you today?',
-                                    style: IOSTheme.title3.copyWith(color: IOSTheme.secondaryLabel),
+                                    style: BentoTheme.title.copyWith(color: BentoTheme.textSecondary),
                                     textAlign: TextAlign.center,
                                   ),
                                 ],
@@ -472,7 +495,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                                   constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
                                   decoration: BoxDecoration(
-                                    color: isUser ? IOSTheme.systemBlue : IOSTheme.tertiarySystemBackground,
+                                    color: isUser ? BentoTheme.accent : BentoTheme.surfaceAlt,
                                     borderRadius: BorderRadius.circular(18),
                                   ),
                                   child: isUser
@@ -507,10 +530,10 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                           child: CupertinoTextField(
                             controller: _messageController,
                             placeholder: 'Ask something...',
-                            placeholderStyle: const TextStyle(color: IOSTheme.tertiaryLabel),
+                            placeholderStyle: const TextStyle(color: BentoTheme.textMuted),
                             style: const TextStyle(color: Colors.white),
                             decoration: BoxDecoration(
-                              color: IOSTheme.tertiarySystemBackground,
+                              color: BentoTheme.surfaceAlt,
                               borderRadius: BorderRadius.circular(20),
                             ),
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -520,7 +543,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                         CupertinoButton(
                           padding: EdgeInsets.zero,
                           minSize: 44,
-                          color: IOSTheme.systemBlue,
+                          color: BentoTheme.accent,
                           borderRadius: BorderRadius.circular(22),
                           onPressed: () => _sendMessage(_messageController.text),
                           child: const Icon(CupertinoIcons.arrow_up, color: Colors.white),
@@ -540,7 +563,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: IOSTheme.systemBackground,
+      backgroundColor: BentoTheme.background,
       extendBody: true, // Allow content to flow behind navigation bar
       body: Stack(
         children: [
@@ -566,11 +589,11 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
                   filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: IOSTheme.systemBlue.withOpacity(0.9),
+                      color: BentoTheme.accent.withOpacity(0.9),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: IOSTheme.systemBlue.withOpacity(0.4),
+                          color: BentoTheme.accent.withOpacity(0.4),
                           blurRadius: 15,
                           offset: const Offset(0, 5),
                         ),
@@ -602,60 +625,63 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
           child: Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(
                 top: BorderSide(
-                  color: Color(0x1AFFFFFF), // Subtle white border at top
+                  color: BentoTheme.outline,
                   width: 0.5,
                 ),
               ),
             ),
-            child: CupertinoTabBar(
-              backgroundColor: const Color(0xCC000000), // Translucent black
-              activeColor: IOSTheme.systemBlue,
-              inactiveColor: IOSTheme.secondaryLabel,
-              currentIndex: currentIndex,
-              onTap: (index) {
-                HapticFeedback.selectionClick();
-                if (index == currentIndex) {
-                  if (index == _aiTabIndex) {
-                    _aiHubKey.currentState?.popToRoot();
+              child: CupertinoTabBar(
+                height: 60,
+                iconSize: 22,
+                backgroundColor: BentoTheme.surface.withOpacity(0.9),
+                activeColor: BentoTheme.accent,
+                inactiveColor: BentoTheme.textSecondary,
+                currentIndex: currentIndex,
+                onTap: (index) {
+                  HapticFeedback.selectionClick();
+                  if (index == currentIndex) {
+                    if (index == _aiTabIndex) {
+                      _aiHubKey.currentState?.popToRoot();
+                    }
+                    return;
                   }
-                  return;
-                }
-                _maybeShowInterstitial(index);
-              },
-              items: const [
-                BottomNavigationBarItem(
-                  icon: Icon(CupertinoIcons.home),
-                  activeIcon: Icon(CupertinoIcons.house_fill),
-                  label: 'Home',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(CupertinoIcons.search),
-                  activeIcon: Icon(CupertinoIcons.search),
-                  label: 'Search',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(CupertinoIcons.sparkles),
-                  activeIcon: Icon(CupertinoIcons.sparkles),
-                  label: 'AI',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(CupertinoIcons.bookmark),
-                  activeIcon: Icon(CupertinoIcons.bookmark_fill),
-                  label: 'Library',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(CupertinoIcons.settings),
-                  activeIcon: Icon(CupertinoIcons.settings_solid),
-                  label: 'Settings',
-                ),
-              ],
+                  _maybeShowInterstitial(index);
+                },
+                items: const [
+                  BottomNavigationBarItem(
+                    icon: Icon(CupertinoIcons.home),
+                    activeIcon: Icon(CupertinoIcons.house_fill),
+                    label: 'Home',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(CupertinoIcons.search),
+                    activeIcon: Icon(CupertinoIcons.search),
+                    label: 'Search',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(CupertinoIcons.sparkles),
+                    activeIcon: Icon(CupertinoIcons.sparkles),
+                    label: 'AI',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(CupertinoIcons.bookmark),
+                    activeIcon: Icon(CupertinoIcons.bookmark_fill),
+                    label: 'Library',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(CupertinoIcons.settings),
+                    activeIcon: Icon(CupertinoIcons.settings_solid),
+                    label: 'Settings',
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-      ),
+      
     );
   }
 }

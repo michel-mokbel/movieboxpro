@@ -1,7 +1,10 @@
+import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:moviemagicbox/utils/ios_theme.dart';
+import 'package:moviemagicbox/utils/bento_theme.dart';
+import 'package:moviemagicbox/widgets/bento_card.dart';
+import 'package:moviemagicbox/services/quiz_history_service.dart';
 import 'mood_discovery_screen.dart';
 import 'movie_quiz_screen.dart';
 
@@ -65,64 +68,55 @@ class AIHubHome extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: BentoTheme.background,
       body: Stack(
         children: [
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF0B0B10),
-                  Color(0xFF0F1116),
-                  Color(0xFF050505),
-                ],
-              ),
-            ),
-          ),
+          _buildBackground(),
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'AI',
-                    style: IOSTheme.largeTitle.copyWith(
-                      fontSize: 42,
-                      color: Colors.white.withOpacity(0.9),
-                      letterSpacing: -1,
-                    ),
-                  ),
-                  Text(
-                    'Studio',
-                    style: IOSTheme.title1.copyWith(
-                      color: IOSTheme.systemBlue,
-                      fontWeight: FontWeight.w300,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  _buildHubCard(
-                    icon: CupertinoIcons.sparkles,
-                    title: 'Mood Discovery',
-                    subtitle: 'Match movies to your mood with one tap.',
-                    onTap: () {
-                      HapticFeedback.selectionClick();
-                      onMood();
-                    },
+                  Text('AI Studio', style: BentoTheme.subtitle.copyWith(letterSpacing: 1.4)),
+                  const SizedBox(height: 6),
+                  Text('Your cinematic copilot', style: BentoTheme.display),
+                  const SizedBox(height: 20),
+                  _buildHeroTile(),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildActionTile(
+                          icon: CupertinoIcons.sparkles,
+                          title: 'Mood Discovery',
+                          subtitle: 'Find movies that match your vibe.',
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            onMood();
+                          },
+                          tint: BentoTheme.accent,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: _buildActionTile(
+                          icon: CupertinoIcons.question_circle_fill,
+                          title: 'Movie Quiz',
+                          subtitle: 'Trivia generated from your picks.',
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            onQuiz(null);
+                          },
+                          tint: BentoTheme.accentSoft,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
-                  _buildHubCard(
-                    icon: CupertinoIcons.question_circle_fill,
-                    title: 'Movie Quiz',
-                    subtitle: 'Generate trivia quizzes from favorites or trending.',
-                    onTap: () {
-                      HapticFeedback.selectionClick();
-                      onQuiz(null);
-                    },
-                  ),
-
+                  _buildTipTile(),
+                  const SizedBox(height: 16),
+                  _buildRecentQuizzes(),
                 ],
               ),
             ),
@@ -132,63 +126,217 @@ class AIHubHome extends StatelessWidget {
     );
   }
 
-  Widget _buildHubCard({
+  Widget _buildBackground() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: BentoTheme.backgroundGradient,
+      ),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+        child: Container(color: Colors.transparent),
+      ),
+    );
+  }
+
+  Widget _buildHeroTile() {
+    return BentoCard(
+      padding: const EdgeInsets.all(18),
+      borderRadius: BorderRadius.circular(BentoTheme.radiusLarge),
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color(0xFF2B3A5C),
+          Color(0xFF141B2D),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: BentoTheme.accentGradient,
+              boxShadow: [
+                BoxShadow(
+                  color: BentoTheme.accent.withOpacity(0.35),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: const Icon(CupertinoIcons.sparkles, color: Colors.white, size: 28),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Personalized picks', style: BentoTheme.title.copyWith(color: Colors.white)),
+                const SizedBox(height: 6),
+                Text('Let the AI assemble a watchlist tailored to your mood and favorites.', style: BentoTheme.body),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionTile({
     required IconData icon,
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    required Color tint,
   }) {
-    return GestureDetector(
+    return BentoCard(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
-          color: Colors.white.withOpacity(0.05),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 18,
-              offset: const Offset(0, 10),
+      borderRadius: BorderRadius.circular(BentoTheme.radiusMedium),
+      gradient: BentoTheme.surfaceGradient,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: tint.withOpacity(0.2),
             ),
+            child: Icon(icon, color: tint, size: 20),
+          ),
+          const SizedBox(height: 12),
+          Text(title, style: BentoTheme.subtitle.copyWith(color: Colors.white)),
+          const SizedBox(height: 6),
+          Text(subtitle, style: BentoTheme.body),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTipTile() {
+    return BentoCard(
+      padding: const EdgeInsets.all(16),
+      borderRadius: BorderRadius.circular(BentoTheme.radiusMedium),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: BentoTheme.surfaceAlt,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: BentoTheme.outline),
+            ),
+            child: const Icon(CupertinoIcons.lightbulb_fill, color: BentoTheme.highlight, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Tip: Start with Mood Discovery for instant recommendations, then challenge yourself with a quiz.',
+              style: BentoTheme.body,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentQuizzes() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: QuizHistoryService.getQuizHistory(),
+      builder: (context, snapshot) {
+        final results = snapshot.data ?? [];
+        if (results.isEmpty) {
+          return BentoCard(
+            padding: const EdgeInsets.all(16),
+            borderRadius: BorderRadius.circular(BentoTheme.radiusMedium),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: BentoTheme.surfaceAlt,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: BentoTheme.outline),
+                  ),
+                  child: const Icon(CupertinoIcons.checkmark_seal, color: BentoTheme.textMuted, size: 18),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Finish a quiz to see your recent scores here.',
+                    style: BentoTheme.body,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final visible = results.take(3).toList();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Recently Completed', style: BentoTheme.subtitle.copyWith(color: Colors.white)),
+            const SizedBox(height: 10),
+            ...visible.map(_buildQuizResultTile),
           ],
-        ),
+        );
+      },
+    );
+  }
+
+  Widget _buildQuizResultTile(Map<String, dynamic> result) {
+    final title = result['title']?.toString() ?? 'Quiz';
+    final poster = result['poster']?.toString();
+    final score = result['score']?.toString() ?? '0';
+    final total = result['total']?.toString() ?? '0';
+    final timestamp = result['timestamp']?.toString();
+    final dateLabel = _formatTimestamp(timestamp);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: BentoCard(
+        padding: const EdgeInsets.all(12),
+        borderRadius: BorderRadius.circular(BentoTheme.radiusMedium),
         child: Row(
           children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: IOSTheme.systemBlue.withOpacity(0.2),
-                shape: BoxShape.circle,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: 46,
+                height: 64,
+                child: poster != null && poster.isNotEmpty
+                    ? Image.network(poster, fit: BoxFit.cover)
+                    : Container(
+                        decoration: const BoxDecoration(gradient: BentoTheme.surfaceGradient),
+                        child: const Icon(CupertinoIcons.film, color: Colors.white54),
+                      ),
               ),
-              child: Icon(icon, color: IOSTheme.systemBlue, size: 24),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: IOSTheme.title3.copyWith(color: Colors.white),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    subtitle,
-                    style: IOSTheme.subhead.copyWith(color: Colors.white70),
-                  ),
+                  Text(title, style: BentoTheme.subtitle.copyWith(color: Colors.white)),
+                  const SizedBox(height: 4),
+                  Text('Score $score / $total', style: BentoTheme.caption.copyWith(color: BentoTheme.textSecondary)),
                 ],
               ),
             ),
-            const Icon(
-              CupertinoIcons.chevron_right,
-              color: Colors.white54,
-            ),
+            Text(dateLabel, style: BentoTheme.caption.copyWith(color: BentoTheme.textMuted)),
           ],
         ),
       ),
     );
+  }
+
+  String _formatTimestamp(String? timestamp) {
+    if (timestamp == null || timestamp.isEmpty) return '';
+    final date = DateTime.tryParse(timestamp);
+    if (date == null) return '';
+    return '${date.month}/${date.day}';
   }
 }

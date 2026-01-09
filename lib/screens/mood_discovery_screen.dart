@@ -1,7 +1,9 @@
+import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:moviemagicbox/utils/ios_theme.dart';
+import 'package:moviemagicbox/utils/bento_theme.dart';
+import 'package:moviemagicbox/widgets/bento_card.dart';
 import '../models/mood_recommendation.dart';
 import '../services/api_service.dart';
 import '../services/movie_service.dart';
@@ -87,92 +89,15 @@ class _MoodDiscoveryScreenState extends State<MoodDiscoveryScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: BentoTheme.background,
       body: Stack(
         children: [
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF0A0A0A),
-                  Color(0xFF111016),
-                  Color(0xFF030303),
-                ],
-              ),
-            ),
-          ),
+          _buildBackground(),
           CustomScrollView(
             slivers: [
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    24,
-                    MediaQuery.of(context).padding.top + 20,
-                    24,
-                    16,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Mood',
-                        style: IOSTheme.largeTitle.copyWith(
-                          fontSize: 42,
-                          color: Colors.white.withOpacity(0.9),
-                          letterSpacing: -1,
-                        ),
-                      ),
-                      Text(
-                        'Discovery',
-                        style: IOSTheme.title1.copyWith(
-                          color: IOSTheme.systemBlue,
-                          fontWeight: FontWeight.w300,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: _moods.map((mood) {
-                      final isSelected = mood == _selectedMood;
-                      return GestureDetector(
-                        onTap: () => _selectMood(mood),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            color: isSelected
-                                ? IOSTheme.systemBlue.withOpacity(0.2)
-                                : Colors.white.withOpacity(0.08),
-                            border: Border.all(
-                              color: isSelected
-                                  ? IOSTheme.systemBlue
-                                  : Colors.white.withOpacity(0.1),
-                            ),
-                          ),
-                          child: Text(
-                            mood,
-                            style: IOSTheme.subhead.copyWith(
-                              color: isSelected ? IOSTheme.systemBlue : Colors.white70,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 24)),
+              SliverToBoxAdapter(child: _buildHeader()),
+              SliverToBoxAdapter(child: _buildMoodChips()),
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -183,6 +108,67 @@ class _MoodDiscoveryScreenState extends State<MoodDiscoveryScreen>
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBackground() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: BentoTheme.backgroundGradient,
+      ),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+        child: Container(color: Colors.transparent),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(24, MediaQuery.of(context).padding.top + 20, 24, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Mood Discovery', style: BentoTheme.subtitle.copyWith(letterSpacing: 1.4)),
+          const SizedBox(height: 6),
+          Text('Find your vibe', style: BentoTheme.display),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMoodChips() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: _moods.map((mood) {
+          final isSelected = mood == _selectedMood;
+          return GestureDetector(
+            onTap: () => _selectMood(mood),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                color: isSelected
+                    ? BentoTheme.accent.withOpacity(0.2)
+                    : BentoTheme.surfaceAlt.withOpacity(0.85),
+                border: Border.all(
+                  color: isSelected ? BentoTheme.accent : BentoTheme.outline,
+                ),
+              ),
+              child: Text(
+                mood,
+                style: BentoTheme.subtitle.copyWith(
+                  color: isSelected ? BentoTheme.textPrimary : BentoTheme.textSecondary,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -241,7 +227,7 @@ class _MoodDiscoveryScreenState extends State<MoodDiscoveryScreen>
     }
     final subtitle = subtitleParts.join(' • ');
 
-    return GestureDetector(
+    return BentoCard(
       onTap: match == null
           ? null
           : () {
@@ -253,68 +239,42 @@ class _MoodDiscoveryScreenState extends State<MoodDiscoveryScreen>
                 ),
               );
             },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white.withOpacity(0.08)),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
+      padding: const EdgeInsets.all(12),
+      borderRadius: BorderRadius.circular(BentoTheme.radiusMedium),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
               width: 70,
               height: 100,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: Colors.white.withOpacity(0.08),
-                image: hasPoster
-                    ? DecorationImage(
-                        image: NetworkImage(poster!),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-              ),
               child: hasPoster
-                  ? null
-                  : const Icon(CupertinoIcons.film, color: Colors.white54),
+                  ? Image.network(poster, fit: BoxFit.cover)
+                  : Container(
+                      decoration: const BoxDecoration(gradient: BentoTheme.surfaceGradient),
+                      child: const Icon(CupertinoIcons.film, color: Colors.white54),
+                    ),
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    recommendation.title,
-                    style: IOSTheme.title3.copyWith(color: Colors.white),
-                  ),
-                  if (subtitle.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      subtitle,
-                      style: IOSTheme.body.copyWith(
-                        color: Colors.white70,
-                        fontSize: 14,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                  if (match != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      'View details',
-                      style: IOSTheme.subhead.copyWith(
-                        color: IOSTheme.systemBlue,
-                      ),
-                    ),
-                  ],
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(recommendation.title, style: BentoTheme.title.copyWith(color: Colors.white)),
+                if (subtitle.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(subtitle, style: BentoTheme.body.copyWith(color: BentoTheme.textSecondary, height: 1.4)),
                 ],
-              ),
+                if (match != null) ...[
+                  const SizedBox(height: 10),
+                  Text('View details', style: BentoTheme.caption.copyWith(color: BentoTheme.accentSoft)),
+                ],
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -326,33 +286,23 @@ class _MoodDiscoveryScreenState extends State<MoodDiscoveryScreen>
     VoidCallback? action,
     String? actionLabel,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.04),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
-      ),
+    return BentoCard(
+      padding: const EdgeInsets.all(20),
+      borderRadius: BorderRadius.circular(BentoTheme.radiusLarge),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: IOSTheme.systemBlue, size: 32),
+          Icon(icon, color: BentoTheme.accent, size: 28),
           const SizedBox(height: 12),
-          Text(title, style: IOSTheme.title3.copyWith(color: Colors.white)),
+          Text(title, style: BentoTheme.title.copyWith(color: Colors.white)),
           const SizedBox(height: 8),
-          Text(
-            message,
-            style: IOSTheme.body.copyWith(color: Colors.white70),
-          ),
+          Text(message, style: BentoTheme.body),
           if (action != null && actionLabel != null) ...[
             const SizedBox(height: 16),
             CupertinoButton(
               padding: EdgeInsets.zero,
               onPressed: action,
-              child: Text(
-                actionLabel,
-                style: IOSTheme.subhead.copyWith(color: IOSTheme.systemBlue),
-              ),
+              child: Text(actionLabel, style: BentoTheme.subtitle.copyWith(color: BentoTheme.accentSoft)),
             ),
           ],
         ],
