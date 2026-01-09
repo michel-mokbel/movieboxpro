@@ -8,7 +8,7 @@
 		<true/>
 	</dict>
 	<key>AppsFlyerAppID</key>
-	<string>6756583616</string>
+	<string>6757599133</string>
 	<key>AppsFlyerDevKey</key>
 	<string>TVuiYiPd4Bu5wzUuZwTymX</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
@@ -37,7 +37,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>com.appadsrocket.movieboxpro</string>
+			<string>com.saleem.movie</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>movieboxpro</string>

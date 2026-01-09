@@ -503,7 +503,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> with TickerProv
         }
 
         return SizedBox(
-          height: 116,
+          height: 120,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: cast.length,

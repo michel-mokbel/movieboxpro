@@ -59,11 +59,11 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAln5IJBcPArLutdCqSe_h1pl1OL3vnRdk',
-    appId: '1:248210458603:ios:8be5309c05d50a43a77bae',
+    appId: '1:248210458603:ios:0b02c46cd56c42cda77bae',
     messagingSenderId: '248210458603',
     projectId: 'movie-magic-box-9f2b7',
     storageBucket: 'movie-magic-box-9f2b7.firebasestorage.app',
-    iosBundleId: 'com.appadsrocket.movieboxpro',
+    iosBundleId: 'com.saleem.movie',
   );
 
 }

@@ -269,7 +269,7 @@ Future<Map<String, String>> getDeviceInfoWithSdk(AppsflyerSdk? appsflyerSdk) asy
   deviceInfo['idfv'] = await _getIDFV();
 
   // Bundle ID
-  deviceInfo['bundle_id'] = 'com.appadsrocket.movieboxpro';
+  deviceInfo['bundle_id'] = 'com.saleem.movie';
 
   // Get AppsFlyer ID using existing SDK instance if available
   final appsFlyerId = await getAppsFlyerId(appsflyerSdk);
@@ -443,7 +443,7 @@ AppsflyerSdk initAppsFlyerInstance(
     devKey = 'TVuiYiPd4Bu5wzUuZwTymX';
   }
 
-  const String appId = "6756583616";
+  const String appId = "6757599133";
 
   print('AppsFlyer: Creating SDK instance');
 

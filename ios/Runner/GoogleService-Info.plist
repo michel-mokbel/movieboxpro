@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.appadsrocket.movieboxpro</string>
+	<string>com.saleem.movie</string>
 	<key>PROJECT_ID</key>
 	<string>movie-magic-box-9f2b7</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:248210458603:ios:8be5309c05d50a43a77bae</string>
+	<string>1:248210458603:ios:0b02c46cd56c42cda77bae</string>
 </dict>
 </plist>
